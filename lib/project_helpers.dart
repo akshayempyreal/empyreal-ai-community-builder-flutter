@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'services/api_client.dart';
+import 'core/constants/api_constants.dart';
 
 extension NumberExtensions on num {
   Widget get width => SizedBox(width: toDouble());
@@ -66,7 +67,7 @@ extension StringExtensions on String {
   
   String get fixImageUrl {
     if (isEmpty) return this;
-    const String base = ApiClient.baseUrl;
+    const String base = ApiConstants.baseUrl;
     
     if (startsWith('http')) {
       if (contains('localhost')) {
