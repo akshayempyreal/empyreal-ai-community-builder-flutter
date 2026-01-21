@@ -25,6 +25,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   
   // Form fields
   final _nameController = TextEditingController();
+  final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedType = '';
   DateTime? _startDate;
@@ -36,6 +37,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _locationController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
     _audienceSizeController.dispose();
@@ -55,6 +57,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text,
         description: _descriptionController.text,
+        location: _locationController.text,
         type: _selectedType,
         date: _startDate!.toIso8601String().split('T')[0],
         endDate: _endDate?.toIso8601String().split('T')[0],
@@ -199,54 +202,75 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final audienceField = TextFormField(
           controller: _audienceSizeController,
           decoration: const InputDecoration(
-            labelText: 'Expected Audience Size',
+            labelText: 'Expected Audience Size *',
             hintText: 'e.g., 200',
           ),
           keyboardType: TextInputType.number,
+          validator: (value) => value == null || value.isEmpty ? 'Required' : null,
         );
 
-        final startDateField = InkWell(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+        final startDateField = FormField<DateTime>(
+          initialValue: _startDate,
+          validator: (value) => value == null ? 'Required' : null,
+          builder: (FormFieldState<DateTime> state) {
+            return InkWell(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() => _startDate = date);
+                  state.didChange(date);
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Start Date *',
+                  errorText: state.errorText,
+                ),
+                child: Text(
+                  _startDate == null 
+                      ? 'Select date' 
+                      : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}',
+                ),
+              ),
             );
-            if (date != null) setState(() => _startDate = date);
           },
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Start Date *',
-            ),
-            child: Text(
-              _startDate == null 
-                  ? 'Select date' 
-                  : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}',
-            ),
-          ),
         );
 
-        final endDateField = InkWell(
-          onTap: () async {
-            final date = await showDatePicker(
-              context: context,
-              initialDate: _startDate ?? DateTime.now(),
-              firstDate: _startDate ?? DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+        final endDateField = FormField<DateTime>(
+          initialValue: _endDate,
+          validator: (value) => value == null ? 'Required' : null,
+          builder: (FormFieldState<DateTime> state) {
+            return InkWell(
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _startDate ?? DateTime.now(),
+                  firstDate: _startDate ?? DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() => _endDate = date);
+                  state.didChange(date);
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'End Date *',
+                  errorText: state.errorText,
+                ),
+                child: Text(
+                  _endDate == null 
+                      ? 'Select date' 
+                      : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}',
+                ),
+              ),
             );
-            if (date != null) setState(() => _endDate = date);
           },
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'End Date (optional)',
-            ),
-            child: Text(
-              _endDate == null 
-                  ? 'Select date' 
-                  : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}',
-            ),
-          ),
         );
 
         return Card(
@@ -269,22 +293,52 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 // Event Name
                 TextFormField(
                   controller: _nameController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: const InputDecoration(
                     labelText: 'Event Name *',
                     hintText: 'e.g., Holi Community Event 2026',
                   ),
-                  validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Required';
+                    final words = value.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                    if (words < 2) {
+                      return 'Name must have at least 2 words (Current: $words)';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 
                 // Description
                 TextFormField(
                   controller: _descriptionController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Describe your event...',
+                    labelText: 'Description *',
+                    hintText: 'Describe your event (min 10 words)...',
                   ),
                   maxLines: 4,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Required';
+                    final words = value.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+                    if (words < 10) {
+                      return 'Description must have at least 10 words (Current: $words)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Location
+                TextFormField(
+                  controller: _locationController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  decoration: const InputDecoration(
+                    labelText: 'Location *',
+                    hintText: 'e.g., Central Park, New York',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                  validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 
@@ -348,9 +402,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: _canProceedToStep2 
-                          ? () => setState(() => _currentStep = 1)
-                          : null,
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() => _currentStep = 1);
+                        }
+                      },
                       child: const Text('Next Step'),
                     ),
                   ],

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../models/auth_models.dart';
 import '../services/api_client.dart';
@@ -17,11 +19,19 @@ class AuthRepository {
     return VerifyOtpResponse.fromJson(response.data);
   }
 
-  Future<FileUploadResponse> uploadFile(String filePath, String token) async {
-    String fileName = filePath.split('/').last;
-    FormData formData = FormData.fromMap({
-      "files": await MultipartFile.fromFile(filePath, filename: fileName),
-    });
+  Future<FileUploadResponse> uploadFile(XFile file, String token) async {
+    FormData formData;
+    
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      formData = FormData.fromMap({
+        "files": MultipartFile.fromBytes(bytes, filename: file.name),
+      });
+    } else {
+      formData = FormData.fromMap({
+        "files": await MultipartFile.fromFile(file.path, filename: file.name),
+      });
+    }
     
     final response = await _apiClient.post(
       '/api/fileUpload', 

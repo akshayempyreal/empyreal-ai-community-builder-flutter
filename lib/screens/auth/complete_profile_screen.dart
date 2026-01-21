@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
@@ -29,14 +30,14 @@ class CompleteProfileScreen extends StatefulWidget {
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  File? _imageFile;
+  XFile? _imageFile;
   final _picker = ImagePicker();
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = pickedFile;
       });
     }
   }
@@ -59,7 +60,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 elevation: 8,
                 margin: const EdgeInsets.all(24),
                 shape: 16.roundBorder,
-                child: Padding(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 450),
                   padding: const EdgeInsets.all(32.0),
                   child: BlocProvider(
                     create: (context) => CompleteProfileBloc(AuthRepository(ApiClient())),
@@ -106,7 +108,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                         border: Border.all(color: AppTheme.primaryIndigo, width: 2),
                                         image: _imageFile != null
                                             ? DecorationImage(
-                                                image: FileImage(_imageFile!),
+                                                image: kIsWeb 
+                                                    ? NetworkImage(_imageFile!.path) as ImageProvider
+                                                    : FileImage(File(_imageFile!.path)),
                                                 fit: BoxFit.cover,
                                               )
                                             : null,
@@ -161,7 +165,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                                   ProfileSubmitted(
                                                     userId: widget.userId,
                                                     name: _nameController.text,
-                                                    filePath: _imageFile?.path,
+                                                    imageFile: _imageFile,
                                                     token: widget.token,
                                                   ),
                                                 );

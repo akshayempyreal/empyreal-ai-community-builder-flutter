@@ -2,6 +2,7 @@ class Event {
   final String id;
   final String name;
   final String description;
+  final String location;
   final String type;
   final String date;
   final String? endDate;
@@ -16,6 +17,7 @@ class Event {
     required this.id,
     required this.name,
     required this.description,
+    required this.location,
     required this.type,
     required this.date,
     this.endDate,
@@ -32,6 +34,7 @@ class Event {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
+      location: json['location'] as String? ?? 'TBD', // Handle existing data
       type: json['type'] as String,
       date: json['date'] as String,
       endDate: json['endDate'] as String?,
@@ -49,6 +52,7 @@ class Event {
       'id': id,
       'name': name,
       'description': description,
+      'location': location,
       'type': type,
       'date': date,
       'endDate': endDate,
