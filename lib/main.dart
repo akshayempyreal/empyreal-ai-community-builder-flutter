@@ -356,14 +356,14 @@ class _AppNavigatorState extends State<AppNavigator> {
           user: _user!,
         );
       
-      case 'reminders':
-        return ReminderSettingsScreen(
-          event: _currentEvent!,
-          reminders: _reminders,
-          onUpdateReminders: _handleUpdateReminders,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
-        );
+      // case 'reminders':
+      //   return ReminderSettingsScreen(
+      //     event: _currentEvent!,
+      //     reminders: _reminders,
+      //     onUpdateReminders: _handleUpdateReminders,
+      //     onBack: () => setState(() => _currentPage = 'event-details'),
+      //     user: _user!,
+      //   );
       
       case 'feedback-collection':
         return FeedbackCollectionScreen(
@@ -372,13 +372,13 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
       
-      case 'feedback-reports':
-        return FeedbackReportsScreen(
-          event: _currentEvent!,
-          feedbackResponses: _feedbackResponses,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
-        );
+      // case 'feedback-reports':
+      //   return FeedbackReportsScreen(
+      //     event: _currentEvent!,
+      //     feedbackResponses: _feedbackResponses,
+      //     onBack: () => setState(() => _currentPage = 'event-details'),
+      //     user: _user!,
+      //   );
       
       default:
         return LoginScreen(
