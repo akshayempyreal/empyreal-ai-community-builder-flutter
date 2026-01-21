@@ -3,8 +3,9 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/animation/app_animations.dart';
 
-class AttendeeManagementScreen extends StatelessWidget {
+class AttendeeManagementScreen extends StatefulWidget {
   final Event event;
   final List<Attendee> attendees;
   final Function(Attendee) onAddAttendee;
@@ -21,6 +22,28 @@ class AttendeeManagementScreen extends StatelessWidget {
   });
 
   @override
+  State<AttendeeManagementScreen> createState() => _AttendeeManagementScreenState();
+}
+
+class _AttendeeManagementScreenState extends State<AttendeeManagementScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.normal,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -29,7 +52,7 @@ class AttendeeManagementScreen extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text('Attendees'),
         actions: [
@@ -39,15 +62,17 @@ class AttendeeManagementScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildSearchHeader(context, isDark),
-          Expanded(
-            child: attendees.isEmpty
-                ? _buildEmptyState(context)
-                : _buildAttendeeList(context, isDark),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchHeader(context, isDark),
+            Expanded(
+              child: widget.attendees.isEmpty
+                  ? _buildEmptyState(context)
+                  : _buildAttendeeList(context, isDark),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
@@ -78,13 +103,13 @@ class AttendeeManagementScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${attendees.length} Members',
+                '${widget.attendees.length} Members',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               Row(
-                children: [
+                children: const [
                   _FilterChip(label: 'All', isActive: true),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _FilterChip(label: 'Pending', isActive: false),
                 ],
               ),
@@ -111,35 +136,39 @@ class AttendeeManagementScreen extends StatelessWidget {
 
   Widget _buildAttendeeList(BuildContext context, bool isDark) {
     return ListView.builder(
-      padding: const EdgeInsets.all(24),
-      itemCount: attendees.length,
+      padding: const EdgeInsets.all(24) + const EdgeInsets.only(bottom: 80),
+      itemCount: widget.attendees.length,
       itemBuilder: (context, index) {
-        final attendee = attendees[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.1),
-              child: Text(
-                attendee.name[0].toUpperCase(),
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+        final attendee = widget.attendees[index];
+        return AppAnimations.staggeredEntrance(
+          Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: Text(
+                  attendee.name[0].toUpperCase(),
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            title: Text(attendee.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(attendee.email, style: TextStyle(color: AppColors.slate500)),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Confirmed',
-                style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.bold),
+              title: Text(attendee.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(attendee.email, style: TextStyle(color: AppColors.slate500)),
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Confirmed',
+                  style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
+          index,
+          _controller,
         );
       },
     );

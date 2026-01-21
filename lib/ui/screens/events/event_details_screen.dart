@@ -4,12 +4,10 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:empyreal_ai_community_builder_flutter/widgets/status_badge.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:math' as math;
 import '../../../core/theme/app_theme.dart';
-import '../../../core/localization/app_localizations.dart';
+import '../../../core/animation/app_animations.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final Event event;
   final List<AgendaItem> agendaItems;
   final List<Attendee> attendees;
@@ -28,6 +26,28 @@ class EventDetailsScreen extends StatelessWidget {
   });
 
   @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.normal,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -37,13 +57,13 @@ class EventDetailsScreen extends StatelessWidget {
           SliverAppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: onBack,
+              onPressed: widget.onBack,
             ),
             expandedHeight: 200,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                event.name,
+                widget.event.name,
                 style: TextStyle(
                   color: isDark ? AppColors.slate50 : AppColors.slate900,
                   fontWeight: FontWeight.bold,
@@ -57,7 +77,7 @@ class EventDetailsScreen extends StatelessWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_calendar,
+                    widget.event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_calendar,
                     size: 80,
                     color: AppColors.primary.withOpacity(0.3),
                   ),
@@ -66,47 +86,60 @@ class EventDetailsScreen extends StatelessWidget {
             ),
           ),
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      StatusBadge(status: event.status),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          event.type.toUpperCase(),
-                          style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FadeTransition(
+                      opacity: _controller,
+                      child: Row(
+                        children: [
+                          StatusBadge(status: widget.event.status),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              widget.event.type.toUpperCase(),
+                              style: const TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    event.description,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Info Grid
-                  _buildInfoGrid(context),
-                  const SizedBox(height: 40),
+                    ),
+                    const SizedBox(height: 24),
+                    FadeTransition(
+                      opacity: _controller,
+                      child: Text(
+                        widget.event.description,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Info Grid
+                    AppAnimations.staggeredEntrance(_buildInfoGrid(context), 0, _controller),
+                    const SizedBox(height: 40),
 
-                  Text(
-                    'Quick Actions',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  _buildActionCards(context),
-                ],
+                    FadeTransition(
+                      opacity: _controller,
+                      child: Text(
+                        'Quick Actions',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    _buildActionCards(context),
+                  ],
+                ),
               ),
             ),
           ),
@@ -125,13 +158,13 @@ class EventDetailsScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildInfoRow(context, Icons.calendar_today_outlined, 'Date', _formatDate(event.date)),
+          _buildInfoRow(context, Icons.calendar_today_outlined, 'Date', _formatDate(widget.event.date)),
           const Divider(height: 32),
-          _buildInfoRow(context, Icons.access_time, 'Duration', '${event.duration} hours'),
+          _buildInfoRow(context, Icons.access_time, 'Duration', '${widget.event.duration} hours'),
           const Divider(height: 32),
-          _buildInfoRow(context, Icons.people_outline, 'Attendees', '${event.attendeeCount ?? 0} registered'),
+          _buildInfoRow(context, Icons.people_outline, 'Attendees', '${widget.event.attendeeCount ?? 0} registered'),
           const Divider(height: 32),
-          _buildInfoRow(context, Icons.psychology_outlined, 'Planning', event.planningMode == 'automated' ? 'AI Generated' : 'Manual'),
+          _buildInfoRow(context, Icons.psychology_outlined, 'Planning', widget.event.planningMode == 'automated' ? 'AI Generated' : 'Manual'),
         ],
       ),
     );
@@ -160,26 +193,38 @@ class EventDetailsScreen extends StatelessWidget {
         crossAxisSpacing: 16,
         childAspectRatio: isMobile ? 2.0 : 1.1,
         children: [
-          _ActionCard(
-            title: 'Agenda',
-            subtitle: '${agendaItems.length} items',
-            icon: Icons.list_alt,
-            color: AppColors.primary,
-            onTap: () => onNavigate('agenda-view'),
+          AppAnimations.staggeredEntrance(
+            _ActionCard(
+              title: 'Agenda',
+              subtitle: '${widget.agendaItems.length} items',
+              icon: Icons.list_alt,
+              color: AppColors.primary,
+              onTap: () => widget.onNavigate('agenda-view'),
+            ),
+            1,
+            _controller,
           ),
-          _ActionCard(
-            title: 'Attendees',
-            subtitle: '${attendees.length} people',
-            icon: Icons.people_alt_outlined,
-            color: AppColors.success,
-            onTap: () => onNavigate('attendees'),
+          AppAnimations.staggeredEntrance(
+            _ActionCard(
+              title: 'Attendees',
+              subtitle: '${widget.attendees.length} people',
+              icon: Icons.people_alt_outlined,
+              color: AppColors.success,
+              onTap: () => widget.onNavigate('attendees'),
+            ),
+            2,
+            _controller,
           ),
-          _ActionCard(
-            title: 'Feedback',
-            subtitle: 'Reviews',
-            icon: Icons.feedback_outlined,
-            color: AppColors.secondary,
-            onTap: () => onNavigate('feedback-collection'),
+          AppAnimations.staggeredEntrance(
+            _ActionCard(
+              title: 'Feedback',
+              subtitle: 'Reviews',
+              icon: Icons.feedback_outlined,
+              color: AppColors.secondary,
+              onTap: () => widget.onNavigate('feedback-collection'),
+            ),
+            3,
+            _controller,
           ),
         ],
       );

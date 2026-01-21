@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
+import '../../../core/animation/app_animations.dart';
 import '../../../models/user.dart';
 import '../../../models/event.dart';
 import '../../../core/theme/app_theme.dart';
@@ -12,6 +13,7 @@ import '../../../shared/widgets/buttons/secondary_button.dart';
 import '../../../blocs/events/create_event_bloc.dart';
 import '../../../blocs/events/create_event_event.dart';
 import '../../../blocs/events/create_event_state.dart';
+import '../../../core/animation/app_animations.dart';
 
 class CreateEventScreen extends StatelessWidget {
   final Function(Event) onCreateEvent;
@@ -163,20 +165,26 @@ class _CreateEventViewState extends State<_CreateEventView> {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 800),
-                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                child: Column(
-                  children: [
-                    _buildProgressIndicator(state.currentStep),
-                    const SizedBox(height: 32),
-                    Form(
-                      key: _formKey,
-                      child: state.currentStep == 0 ? _buildStep1(state) : _buildStep2(state),
-                    ),
-                  ],
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Column(
+                    children: [
+                      _buildProgressIndicator(state.currentStep),
+                      const SizedBox(height: 32),
+                      AnimatedSwitcher(
+                        duration: AppAnimations.normal,
+                        transitionBuilder: AppAnimations.pageTransitionBuilder,
+                        child: Form(
+                          key: ValueKey('step_${state.currentStep}'),
+                          child: state.currentStep == 0 ? _buildStep1(state) : _buildStep2(state),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

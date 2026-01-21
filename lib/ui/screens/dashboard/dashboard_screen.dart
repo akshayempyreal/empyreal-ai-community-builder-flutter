@@ -6,8 +6,10 @@ import 'package:empyreal_ai_community_builder_flutter/widgets/stat_card.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/animation/app_animations.dart';
+import '../../../core/animation/dashboard_entry_animation.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final User user;
   final List<Event> events;
   final VoidCallback onCreateEvent;
@@ -26,104 +28,140 @@ class DashboardScreen extends StatelessWidget {
   });
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.slow,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final stats = _calculateStats();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 120.0,
-            floating: true,
-            pinned: true,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                context.tr('common.app_name'),
-                style: TextStyle(
-                  color: isDark ? AppColors.slate50 : AppColors.slate900,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark 
-                      ? [AppColors.slate900, AppColors.slate800] 
-                      : [AppColors.slate50, Colors.white],
+      body: DashboardEntryAnimation(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 120.0,
+              floating: true,
+              pinned: true,
+              elevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Text(
+                  context.tr('common.app_name'),
+                  style: TextStyle(
+                    color: isDark ? AppColors.slate50 : AppColors.slate900,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              GestureDetector(
-                onTap: onNavigateToProfile,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: Text(
-                      user.name[0].toUpperCase(),
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark 
+                        ? [AppColors.slate900, AppColors.slate800] 
+                        : [AppColors.slate50, Colors.white],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('dashboard.welcome', arguments: {'name': user.name.split(' ')[0]}),
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.tr('dashboard.summary'),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Stats row
-                  _buildStatsGrid(context, stats),
-                  const SizedBox(height: 32),
-
-                  // Create Event Banner
-                  _buildCreateBanner(context),
-                  const SizedBox(height: 40),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.tr('dashboard.your_events'),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {},
+                ),
+                GestureDetector(
+                  onTap: widget.onNavigateToProfile,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      child: Text(
+                        widget.user.name[0].toUpperCase(),
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                       ),
-                      TextButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.filter_list, size: 18),
-                        label: const Text('Filter'),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-
-                  _buildEventsList(context),
-                ],
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FadeTransition(
+                      opacity: _controller,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('dashboard.welcome', arguments: {'name': widget.user.name.split(' ')[0]}),
+                            style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            context.tr('dashboard.summary'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+  
+                    // Stats row
+                    _buildStatsGrid(context, stats),
+                    const SizedBox(height: 32),
+  
+                    // Create Event Banner
+                    AppAnimations.staggeredEntrance(
+                      _buildCreateBanner(context),
+                      2,
+                      _controller,
+                    ),
+                    const SizedBox(height: 40),
+  
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          context.tr('dashboard.your_events'),
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.filter_list, size: 18),
+                          label: const Text('Filter'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+  
+                    _buildEventsList(context),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -140,29 +178,45 @@ class DashboardScreen extends StatelessWidget {
           crossAxisSpacing: 16,
           childAspectRatio: constraints.maxWidth > 600 ? 1.5 : 1.1,
           children: [
-            StatCard(
-              title: context.tr('dashboard.total_events'),
-              value: stats['totalEvents'].toString(),
-              icon: Icons.calendar_today,
-              iconColor: AppColors.primary,
+            AppAnimations.staggeredEntrance(
+              StatCard(
+                title: context.tr('dashboard.total_events'),
+                value: stats['totalEvents'].toString(),
+                icon: Icons.calendar_today,
+                iconColor: AppColors.primary,
+              ),
+              0,
+              _controller,
             ),
-            StatCard(
-              title: context.tr('dashboard.active_events'),
-              value: stats['activeEvents'].toString(),
-              icon: Icons.bolt,
-              iconColor: AppColors.success,
+            AppAnimations.staggeredEntrance(
+              StatCard(
+                title: context.tr('dashboard.active_events'),
+                value: stats['activeEvents'].toString(),
+                icon: Icons.bolt,
+                iconColor: AppColors.success,
+              ),
+              1,
+              _controller,
             ),
-            StatCard(
-              title: context.tr('dashboard.total_attendees'),
-              value: stats['totalAttendees'].toString(),
-              icon: Icons.people_outline,
-              iconColor: AppColors.secondary,
+            AppAnimations.staggeredEntrance(
+              StatCard(
+                title: context.tr('dashboard.total_attendees'),
+                value: stats['totalAttendees'].toString(),
+                icon: Icons.people_outline,
+                iconColor: AppColors.secondary,
+              ),
+              2,
+              _controller,
             ),
-            StatCard(
-              title: context.tr('dashboard.completed_events'),
-              value: stats['completedEvents'].toString(),
-              icon: Icons.check_circle_outline,
-              iconColor: AppColors.info,
+            AppAnimations.staggeredEntrance(
+              StatCard(
+                title: context.tr('dashboard.completed_events'),
+                value: stats['completedEvents'].toString(),
+                icon: Icons.check_circle_outline,
+                iconColor: AppColors.info,
+              ),
+              3,
+              _controller,
             ),
           ],
         );
@@ -205,7 +259,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: onCreateEvent,
+                  onPressed: widget.onCreateEvent,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.primary,
@@ -225,7 +279,7 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildEventsList(BuildContext context) {
-    if (events.isEmpty) {
+    if (widget.events.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 60),
@@ -252,11 +306,15 @@ class DashboardScreen extends StatelessWidget {
             crossAxisSpacing: 16,
             childAspectRatio: 0.9,
           ),
-          itemCount: events.length,
+          itemCount: widget.events.length,
           itemBuilder: (context, index) {
-            return EventCard(
-              event: events[index],
-              onTap: () => onSelectEvent(events[index]),
+            return AppAnimations.staggeredEntrance(
+              EventCard(
+                event: widget.events[index],
+                onTap: () => widget.onSelectEvent(widget.events[index]),
+              ),
+              index + 4,
+              _controller,
             );
           },
         );
@@ -266,10 +324,10 @@ class DashboardScreen extends StatelessWidget {
 
   Map<String, int> _calculateStats() {
     return {
-      'totalEvents': events.length,
-      'activeEvents': events.where((e) => e.status == 'ongoing' || e.status == 'published').length,
-      'totalAttendees': events.fold(0, (sum, e) => sum + (e.attendeeCount ?? 0)),
-      'completedEvents': events.where((e) => e.status == 'completed').length,
+      'totalEvents': widget.events.length,
+      'activeEvents': widget.events.where((e) => e.status == 'ongoing' || e.status == 'published').length,
+      'totalAttendees': widget.events.fold(0, (sum, e) => sum + (e.attendeeCount ?? 0)),
+      'completedEvents': widget.events.where((e) => e.status == 'completed').length,
     };
   }
 }

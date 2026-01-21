@@ -3,8 +3,9 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
+import '../../../core/animation/app_animations.dart';
 
-class EventAgendaScreen extends StatelessWidget {
+class EventAgendaScreen extends StatefulWidget {
   final Event event;
   final List<AgendaItem> agendaItems;
   final VoidCallback onBack;
@@ -19,22 +20,43 @@ class EventAgendaScreen extends StatelessWidget {
   });
 
   @override
+  State<EventAgendaScreen> createState() => _EventAgendaScreenState();
+}
+
+class _EventAgendaScreenState extends State<EventAgendaScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.normal,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isWide = MediaQuery.of(context).size.width >= 800;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text('Event Agenda'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: onEditAgenda,
+            onPressed: widget.onEditAgenda,
           ),
         ],
       ),
@@ -43,7 +65,7 @@ class EventAgendaScreen extends StatelessWidget {
           children: [
             _buildHeader(context, isDark),
             Expanded(
-              child: agendaItems.isEmpty 
+              child: widget.agendaItems.isEmpty 
                 ? _buildEmptyState(context, isDark)
                 : _buildAgendaList(context, isDark),
             ),
@@ -51,7 +73,7 @@ class EventAgendaScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: onEditAgenda,
+        onPressed: widget.onEditAgenda,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.auto_awesome, color: Colors.white),
       ),
@@ -65,36 +87,31 @@ class EventAgendaScreen extends StatelessWidget {
         color: isDark ? AppColors.surfaceDark : Colors.white,
         border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.calendar_today, color: AppColors.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.event.name,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                child: const Icon(Icons.calendar_today, color: AppColors.primary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '${agendaItems.length} items scheduled',
-                      style: TextStyle(color: AppColors.slate500),
-                    ),
-                  ],
+                Text(
+                  '${widget.agendaItems.length} items scheduled',
+                  style: const TextStyle(color: AppColors.slate500),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -108,7 +125,7 @@ class EventAgendaScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_note, size: 80, color: AppColors.slate300),
+            const Icon(Icons.event_note, size: 80, color: AppColors.slate300),
             const SizedBox(height: 24),
             Text(
               'Your agenda is empty',
@@ -125,7 +142,7 @@ class EventAgendaScreen extends StatelessWidget {
               text: 'Plan with AI',
               icon: Icons.auto_awesome,
               width: 200,
-              onPressed: onEditAgenda,
+              onPressed: widget.onEditAgenda,
             ),
           ],
         ),
@@ -135,14 +152,18 @@ class EventAgendaScreen extends StatelessWidget {
 
   Widget _buildAgendaList(BuildContext context, bool isDark) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      itemCount: agendaItems.length,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32) + const EdgeInsets.only(bottom: 80),
+      itemCount: widget.agendaItems.length,
       itemBuilder: (context, index) {
-        final item = agendaItems[index];
-        return _AgendaTimelineItem(
-          item: item,
-          isFirst: index == 0,
-          isLast: index == agendaItems.length - 1,
+        final item = widget.agendaItems[index];
+        return AppAnimations.staggeredEntrance(
+          _AgendaTimelineItem(
+            item: item,
+            isFirst: index == 0,
+            isLast: index == widget.agendaItems.length - 1,
+          ),
+          index,
+          _controller,
         );
       },
     );
@@ -223,7 +244,7 @@ class _AgendaTimelineItem extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       item.description!,
-                      style: TextStyle(color: AppColors.slate500, fontSize: 14, height: 1.4),
+                      style: const TextStyle(color: AppColors.slate500, fontSize: 14, height: 1.4),
                     ),
                   ],
                 ],

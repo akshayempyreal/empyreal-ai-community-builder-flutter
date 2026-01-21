@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'core/animation/app_animations.dart';
 import 'models/auth_models.dart';
 import 'dart:ui';
 import 'services/notification_service.dart';
@@ -400,7 +401,11 @@ class _AppNavigatorState extends State<AppNavigator> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: _buildPage(),
+      child: AnimatedSwitcher(
+        duration: AppAnimations.normal,
+        transitionBuilder: AppAnimations.pageTransitionBuilder,
+        child: _buildPage(),
+      ),
     );
   }
 
@@ -442,6 +447,7 @@ class _AppNavigatorState extends State<AppNavigator> {
     switch (_currentPage) {
       case 'login':
         return LoginScreen(
+          key: const ValueKey('login'),
           onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
@@ -449,6 +455,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'otp':
         return OtpScreen(
+          key: const ValueKey('otp'),
           userId: _tempUserId,
           mobileNo: _tempMobileNo,
           onOtpVerified: _handleOtpVerified,
@@ -457,6 +464,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'complete-profile':
         return CompleteProfileScreen(
+          key: const ValueKey('complete-profile'),
           userId: _tempUserId,
           token: _token,
           onProfileCompleted: _handleProfileCompleted,
@@ -464,17 +472,20 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'register':
         return RegisterScreen(
+          key: const ValueKey('register'),
           onRegister: _handleRegister,
           onNavigateToLogin: () => setState(() => _currentPage = 'login'),
         );
       
       case 'forgot-password':
         return ForgotPasswordScreen(
+          key: const ValueKey('forgot-password'),
           onNavigateToLogin: () => setState(() => _currentPage = 'login'),
         );
       
       case 'dashboard':
         return DashboardScreen(
+          key: const ValueKey('dashboard'),
           user: _user!,
           events: _events,
           onCreateEvent: () => setState(() => _currentPage = 'create-event'),
@@ -485,6 +496,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'profile':
         return ProfileScreen(
+          key: const ValueKey('profile'),
           token: _token,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           onLogout: _handleLogout,
@@ -496,6 +508,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'edit-profile':
         return EditProfileScreen(
+          key: const ValueKey('edit-profile'),
           user: _user!,
           token: _token,
           onProfileUpdated: _handleProfileUpdated,
@@ -504,6 +517,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'create-event':
         return CreateEventScreen(
+          key: const ValueKey('create-event'),
           onCreateEvent: _handleCreateEvent,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
@@ -511,6 +525,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'event-details':
         return EventDetailsScreen(
+          key: const ValueKey('event-details'),
           event: _currentEvent!,
           agendaItems: _agendaItems,
           attendees: _attendees,
@@ -521,6 +536,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'ai-agenda':
         return AIAgendaBuilderScreen(
+          key: const ValueKey('ai-agenda'),
           event: _currentEvent!,
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
@@ -529,6 +545,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'agenda-view':
         return EventAgendaScreen(
+          key: const ValueKey('agenda-view'),
           event: _currentEvent!,
           agendaItems: _agendaItems,
           onBack: () => setState(() => _currentPage = 'event-details'),
@@ -540,6 +557,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'manual-agenda':
         return ManualAgendaEditorScreen(
+          key: const ValueKey('manual-agenda'),
           event: _currentEvent!,
           existingAgenda: _agendaItems,
           onSaveAgenda: _handleSaveAgenda,
@@ -549,6 +567,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'attendees':
         return AttendeeManagementScreen(
+          key: const ValueKey('attendees'),
           event: _currentEvent!,
           attendees: _attendees,
           onAddAttendee: _handleAddAttendee,
@@ -556,32 +575,17 @@ class _AppNavigatorState extends State<AppNavigator> {
           user: _user!,
         );
       
-      // case 'reminders':
-      //   return ReminderSettingsScreen(
-      //     event: _currentEvent!,
-      //     reminders: _reminders,
-      //     onUpdateReminders: _handleUpdateReminders,
-      //     onBack: () => setState(() => _currentPage = 'event-details'),
-      //     user: _user!,
-      //   );
-      
       case 'feedback-collection':
         return FeedbackCollectionScreen(
+          key: const ValueKey('feedback-collection'),
           event: _currentEvent!,
           onSubmitFeedback: _handleSubmitFeedback,
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
       
-      // case 'feedback-reports':
-      //   return FeedbackReportsScreen(
-      //     event: _currentEvent!,
-      //     feedbackResponses: _feedbackResponses,
-      //     onBack: () => setState(() => _currentPage = 'event-details'),
-      //     user: _user!,
-      //   );
-      
       default:
         return LoginScreen(
+          key: const ValueKey('login-default'),
           onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),

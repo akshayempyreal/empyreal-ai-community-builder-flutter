@@ -2,11 +2,26 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/feedback_response.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/animation/app_animations.dart';
 
-class FeedbackCollectionScreen extends StatelessWidget {
+class FeedbackCollectionScreen extends StatefulWidget {
   final Event event;
   final Function(FeedbackResponse) onSubmitFeedback;
   final VoidCallback onBack;
+
+  const FeedbackCollectionScreen({
+    super.key,
+    required this.event,
+    required this.onSubmitFeedback,
+    required this.onBack,
+  });
+
+  @override
+  State<FeedbackCollectionScreen> createState() => _FeedbackCollectionScreenState();
+}
+
+class _FeedbackCollectionScreenState extends State<FeedbackCollectionScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
 
   static final _mockFeedback = [
     FeedbackResponse(
@@ -27,12 +42,20 @@ class FeedbackCollectionScreen extends StatelessWidget {
     ),
   ];
 
-  const FeedbackCollectionScreen({
-    super.key,
-    required this.event,
-    required this.onSubmitFeedback,
-    required this.onBack,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.normal,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,54 +66,66 @@ class FeedbackCollectionScreen extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text('Feedback Hub'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatBanner(context, isDark),
-            const SizedBox(height: 32),
-            Text(
-              'Recent Reviews',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ..._mockFeedback.map((f) => _buildFeedbackCard(context, f, isDark)),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatBanner(context, isDark),
+              const SizedBox(height: 32),
+              Text(
+                'Recent Reviews',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ...List.generate(_mockFeedback.length, (index) {
+                return AppAnimations.staggeredEntrance(
+                  _buildFeedbackCard(context, _mockFeedback[index], isDark),
+                  index + 2,
+                  _controller,
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatBanner(BuildContext context, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return AppAnimations.staggeredEntrance(
+      Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.secondary],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: const [
+            _StatItem(label: 'Avg Rating', value: '4.8', icon: Icons.star),
+            _StatItem(label: 'Responses', value: '24', icon: Icons.chat_bubble_outline),
+          ],
+        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _StatItem(label: 'Avg Rating', value: '4.8', icon: Icons.star),
-          _StatItem(label: 'Responses', value: '24', icon: Icons.chat_bubble_outline),
-        ],
-      ),
+      0,
+      _controller,
     );
   }
 
@@ -152,7 +187,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w400)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500)),
         Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
       ],
     );
