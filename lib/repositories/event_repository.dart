@@ -50,4 +50,13 @@ class EventRepository {
     );
     return FileUploadResponse.fromJson(response.data);
   }
+
+  Future<EventListResponse> getEvents(EventListRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/list',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return EventListResponse.fromJson(response.data);
+  }
 }

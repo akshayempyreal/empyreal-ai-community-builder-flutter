@@ -461,7 +461,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       case 'dashboard':
         return DashboardScreen(
           user: _user!,
-          events: _events,
+          token: _token,
           onCreateEvent: () => setState(() => _currentPage = 'create-event'),
           onSelectEvent: _handleSelectEvent,
           onLogout: _handleLogout,

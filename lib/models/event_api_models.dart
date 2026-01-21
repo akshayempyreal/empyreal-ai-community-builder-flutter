@@ -83,6 +83,7 @@ class EventData {
   final String createdBy;
   final String updatedAt;
   final String createdAt;
+  final int membersCount;
 
   EventData({
     required this.id,
@@ -102,6 +103,7 @@ class EventData {
     required this.createdBy,
     required this.updatedAt,
     required this.createdAt,
+    this.membersCount = 0,
   });
 
   factory EventData.fromJson(Map<String, dynamic> json) {
@@ -123,6 +125,74 @@ class EventData {
       createdBy: json['createdBy'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
       createdAt: json['createdAt'] ?? '',
+      membersCount: json['membersCount'] ?? 0,
+    );
+  }
+}
+
+class EventListRequest {
+  final int page;
+  final int limit;
+  final String ownBy;
+  final String status;
+
+  EventListRequest({
+    this.page = 1,
+    this.limit = 10,
+    this.ownBy = 'all',
+    this.status = 'upcoming',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'page': page,
+    'limit': limit,
+    'ownBy': ownBy,
+    'status': status,
+  };
+}
+
+class EventListResponse {
+  final bool status;
+  final String message;
+  final EventListData? data;
+
+  EventListResponse({
+    required this.status,
+    required this.message,
+    this.data,
+  });
+
+  factory EventListResponse.fromJson(Map<String, dynamic> json) {
+    return EventListResponse(
+      status: json['status'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'] != null ? EventListData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+class EventListData {
+  final List<EventData> events;
+  final int total;
+  final int page;
+  final int limit;
+  final int totalPages;
+
+  EventListData({
+    required this.events,
+    required this.total,
+    required this.page,
+    required this.limit,
+    required this.totalPages,
+  });
+
+  factory EventListData.fromJson(Map<String, dynamic> json) {
+    return EventListData(
+      events: (json['events'] as List?)?.map((x) => EventData.fromJson(x)).toList() ?? [],
+      total: json['total'] ?? 0,
+      page: json['page'] ?? 1,
+      limit: json['limit'] ?? 10,
+      totalPages: json['totalPages'] ?? 1,
     );
   }
 }

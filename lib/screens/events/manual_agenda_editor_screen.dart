@@ -641,9 +641,12 @@ class AgendaLoadingView extends StatefulWidget {
   State<AgendaLoadingView> createState() => _AgendaLoadingViewState();
 }
 
-class _AgendaLoadingViewState extends State<AgendaLoadingView> {
+class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTickerProviderStateMixin {
   int _messageIndex = 0;
   Timer? _timer;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  
   final List<String> _messages = [
     'Creating Agenda...',
     'Managing Timing...',
@@ -656,11 +659,20 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> {
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    
     _startTimer();
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
           _messageIndex = (_messageIndex + 1) % _messages.length;
@@ -672,84 +684,175 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> {
   @override
   void dispose() {
     _timer?.cancel();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryIndigo.withOpacity(0.1),
-                  blurRadius: 20,
-                  spreadRadius: 10,
+          // Premium AI Orb Animation
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer Glowing Rings
+              ScaleTransition(
+                scale: _pulseAnimation,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primaryIndigo.withOpacity(0.05),
+                  ),
                 ),
-              ],
-            ),
-            child: const CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
-            ),
+              ),
+              ScaleTransition(
+                scale: Tween<double>(begin: 1.2, end: 0.8).animate(_pulseController),
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.primaryIndigo.withOpacity(0.1), width: 1),
+                  ),
+                ),
+              ),
+              // Main Orb
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryIndigo.withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.auto_awesome, color: Colors.white, size: 40),
+                ),
+              ),
+              // Rotating Progress Ring
+              const SizedBox(
+                width: 120,
+                height: 120,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 48),
+          
+          const SizedBox(height: 64),
+          
+          // Status Text
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 800),
-            switchInCurve: Curves.easeInOutBack,
-            switchOutCurve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 600),
             transitionBuilder: (child, animation) {
               return FadeTransition(
                 opacity: animation,
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: const Offset(0, 0.4),
+                    begin: const Offset(0, 0.3),
                     end: Offset.zero,
-                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                  ).animate(animation),
                   child: child,
                 ),
               );
             },
-            child: Text(
-              _messages[_messageIndex],
+            child: Column(
               key: ValueKey<int>(_messageIndex),
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryIndigo,
-                letterSpacing: 0.5,
-              ),
+              children: [
+                Text(
+                  _messages[_messageIndex],
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _getSubtitle(_messageIndex),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.gray500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Our AI is architecting your perfect community event',
-            style: TextStyle(
-              fontSize: 15,
-              color: AppTheme.gray500,
-              fontStyle: FontStyle.italic,
+          
+          const SizedBox(height: 60),
+          
+          // Technical Progress bar
+          Container(
+            width: 240,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppTheme.gray100,
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          const SizedBox(height: 56),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 64),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(20),
               child: const LinearProgressIndicator(
-                backgroundColor: AppTheme.gray200,
+                backgroundColor: Colors.transparent,
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
-                minHeight: 4,
+                minHeight: 6,
               ),
             ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 14, color: AppTheme.gray400),
+              SizedBox(width: 8),
+              Text(
+                'Architecting via Empyre AI Engine',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.gray400,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
+  String _getSubtitle(int index) {
+    switch (index) {
+      case 0: return 'Structuring the foundation of your event';
+      case 1: return 'Ensuring a perfect flow for every speaker';
+      case 2: return 'Balancing learning and interactive workshops';
+      case 3: return 'Strategically placing networking intervals';
+      case 4: return 'Maximizing engagement across all segments';
+      case 5: return 'Polishing the timeline for your community';
+      default: return 'Architecting your perfect community event';
+    }
+  }
 }
+

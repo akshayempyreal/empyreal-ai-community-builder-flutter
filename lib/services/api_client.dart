@@ -21,12 +21,14 @@ class ApiClient {
   }
 
   Future<Response> get(String path, {
+    Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     Duration? receiveTimeout,
   }) async {
     try {
       final response = await _dio.get(
         path,
+        queryParameters: queryParameters,
         options: Options(
           headers: headers,
           receiveTimeout: receiveTimeout,
