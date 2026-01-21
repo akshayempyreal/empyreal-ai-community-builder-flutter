@@ -56,8 +56,10 @@ void main() async {
     };
   }
 
-  // Setup FCM using the new service
-  await NotificationService().initialize();
+  // Setup FCM using the new service only on mobile
+  if (!kIsWeb) {
+    await NotificationService().initialize();
+  }
 
   runApp(const MyApp());
 }

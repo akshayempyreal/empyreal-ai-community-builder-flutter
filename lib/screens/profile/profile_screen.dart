@@ -117,18 +117,30 @@ class _ProfileScreenContent extends StatelessWidget {
                             child: Column(
                               children: [
                                 // Profile Image
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 4),
-                                    image: DecorationImage(
-                                      image: NetworkImage(user.profilePic.isNotEmpty 
-                                        ? user.profilePic.fixImageUrl 
-                                        : 'https://via.placeholder.com/150'),
-                                      fit: BoxFit.cover,
-                                    ),
+                                CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.white,
+                                  child: CircleAvatar(
+                                    radius: 56,
+                                    backgroundColor: AppTheme.indigo100,
+                                    backgroundImage: user.profilePic.isNotEmpty 
+                                        ? NetworkImage(user.profilePic.fixImageUrl)
+                                        : null,
+                                    onBackgroundImageError: user.profilePic.isNotEmpty 
+                                        ? (exception, stackTrace) {
+                                            debugPrint('Error loading profile image: $exception');
+                                          } 
+                                        : null,
+                                    child: user.profilePic.isEmpty 
+                                        ? Text(
+                                            user.name.firstChar.upper,
+                                            style: const TextStyle(
+                                              fontSize: 40,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.primaryIndigo,
+                                            ),
+                                          )
+                                        : null,
                                   ),
                                 ),
                                 4.height(context),
