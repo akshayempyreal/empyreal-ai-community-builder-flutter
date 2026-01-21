@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+// Conditional imports for Mobile-only packages
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// Top-level background message handler for FCM
+/// This is ONLY compiled/used for Mobile.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, 
-  // ensure you call `Firebase.initializeApp()` here as well.
   if (kDebugMode) {
     print("FCM: Handling a background message: ${message.messageId}");
   }
@@ -18,133 +18,86 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  bool _initialized = false;
+  
+  // We avoid creating these as fields to prevent static initialization on Web
+  // final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
-  /// Android Notification Channel for high-importance notifications
-  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'high_importance_channel', // id
-    'High Importance Notifications', // title
-    description: 'This channel is used for important notifications.', // description
-    importance: Importance.max,
-  );
-
-  /// Initializes the notification service
   Future<void> initialize() async {
-    // Set the background messaging handler early on
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // Create the Android notification channel
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
-
-    // Initialize local notifications for foreground display
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    
-    const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-    );
-
-    await _localNotifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse details) {
-        // Handle notification tap here if needed in the future
-        if (kDebugMode) {
-          print("FCM: Notification tapped: ${details.payload}");
-        }
-      },
-    );
-
-    // Request permissions
-    await _requestPermissions();
-
-    // Setup listeners
-    _configureFCM();
-
-    // Get initial token
-    await _logToken();
-  }
-
-  Future<void> _requestPermissions() async {
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-
-    if (kDebugMode) {
-      print('FCM: User granted permission: ${settings.authorizationStatus}');
+    // MANDATORY: Absolute stop for Web
+    if (kIsWeb) {
+      debugPrint("NotificationService: Execution skipped on Web (Firebase-Free Path)");
+      return;
     }
-  }
 
-  void _configureFCM() {
-    // 1. Foreground Message listener
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (kDebugMode) {
-        print('FCM: Received a foreground message: ${message.notification?.title}');
-      }
+    if (_initialized) return;
 
-      RemoteNotification? notification = message.notification;
-      
-      // If `onMessage` is triggered, we manually show a local notification
-      // because FCM does not show UI notifications while the app is in the foreground.
-      if (notification != null && !kIsWeb) {
-        _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              _channel.id,
-              _channel.name,
-              channelDescription: _channel.description,
-              icon: message.notification?.android?.smallIcon ?? '@mipmap/ic_launcher',
-              importance: Importance.max,
-              priority: Priority.high,
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-          payload: message.data.toString(),
-        );
-      }
-    });
-
-    // 2. Token refresh listener
-    _fcm.onTokenRefresh.listen((newToken) {
-      if (kDebugMode) {
-        print('FCM: Token refreshed: $newToken');
-      }
-    });
-  }
-
-  Future<void> _logToken() async {
     try {
-      String? token = await _fcm.getToken();
-      if (kDebugMode) {
-        print('FCM: Token: $token');
-      }
+      // Create the Android notification channel
+      final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+      
+      const channel = AndroidNotificationChannel(
+        'high_importance_channel',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.max,
+      );
+
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      const initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initializationSettingsDarwin = DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+
+      const initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsDarwin,
+      );
+
+      await flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+      );
+
+      // Setup FCM
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      
+      final fcm = FirebaseMessaging.instance;
+      await fcm.requestPermission(alert: true, badge: true, sound: true);
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        // Foreground handling...
+        if (message.notification != null) {
+          flutterLocalNotificationsPlugin.show(
+            message.notification.hashCode,
+            message.notification?.title,
+            message.notification?.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                importance: Importance.max,
+                priority: Priority.high,
+              ),
+              iOS: const DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+              ),
+            ),
+          );
+        }
+      });
+
+      _initialized = true;
+      debugPrint("NotificationService: Mobile FCM Initialized");
     } catch (e) {
-      if (kDebugMode) {
-        print('FCM: Error getting token: $e');
-      }
+      debugPrint("NotificationService Error: $e");
     }
   }
 }

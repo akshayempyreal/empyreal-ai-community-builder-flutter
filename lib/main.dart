@@ -42,26 +42,35 @@ import 'ui/screens/events/feedback_reports_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase only on mobile platforms (skip on web)
+  // 1. Platform-Based Firebase Isolation
+  // Firebase is REQUIRED ONLY for Mobile (Android / iOS).
+  // Web builds MUST NOT initialize or reference Firebase runtime services.
   if (!kIsWeb) {
-    await Firebase.initializeApp();
-
-    // Enable Crashlytics collection
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
-
-    // Pass all uncaught "fatal" errors from the framework to Crashlytics
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
-    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    try {
+      await Firebase.initializeApp();
+      
+      // Mobile-Only Services (Crashlytics)
+      // These will never be called on Web.
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+      
+      debugPrint("Firebase: Initialized for Mobile");
+    } catch (e) {
+      debugPrint("Firebase: Mobile Initialization Error: $e");
+    }
+  } else {
+    debugPrint("App: Running in Firebase-Free Web Mode");
   }
 
-  // Setup FCM using the new service
-  await NotificationService().initialize();
+  // 2. Notification Service (Strictly Guarded for Mobile)
+  if (!kIsWeb) {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+  }
 
   runApp(const MyApp());
 }
