@@ -1,0 +1,74 @@
+[
+  {
+    "id": "loc_001",
+    "name": "Central Park, New York",
+    "latitude": 40.785091,
+    "longitude": -73.968285
+  },
+  {
+    "id": "loc_002",
+    "name": "Hyde Park, London",
+    "latitude": 51.507268,
+    "longitude": -0.165730
+  },
+  {
+    "id": "loc_003",
+    "name": "Yoyogi Park, Tokyo",
+    "latitude": 35.671716,
+    "longitude": 139.694927
+  },
+  {
+    "id": "loc_004",
+    "name": "Gardens by the Bay, Singapore",
+    "latitude": 1.281568,
+    "longitude": 103.863613
+  },
+  {
+    "id": "loc_005",
+    "name": "Sydney Opera House, Sydney",
+    "latitude": -33.856784,
+    "longitude": 151.215297
+  },
+  {
+    "id": "loc_006",
+    "name": "Eiffel Tower, Paris",
+    "latitude": 48.858370,
+    "longitude": 2.294481
+  },
+  {
+    "id": "loc_007",
+    "name": "Stanley Park, Vancouver",
+    "latitude": 49.302298,
+    "longitude": -123.140134
+  },
+  {
+    "id": "loc_008",
+    "name": "Lodi Gardens, New Delhi",
+    "latitude": 28.593117,
+    "longitude": 77.219677
+  },
+  {
+    "id": "loc_009",
+    "name": "Cubbon Park, Bengaluru",
+    "latitude": 12.977872,
+    "longitude": 77.595183
+  },
+  {
+    "id": "loc_010",
+    "name": "Golden Gate Park, San Francisco",
+    "latitude": 37.769421,
+    "longitude": -122.486214
+  },
+  {
+    "id": "loc_011",
+    "name": "Table Mountain, Cape Town",
+    "latitude": -33.962822,
+    "longitude": 18.409838
+  },
+  {
+    "id": "loc_012",
+    "name": "Ibirapuera Park, Sao Paulo",
+    "latitude": -23.587416,
+    "longitude": -46.657633
+  }
+]
