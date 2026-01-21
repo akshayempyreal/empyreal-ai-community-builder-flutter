@@ -38,6 +38,7 @@ import 'screens/events/attendee_management_screen.dart';
 import 'screens/events/reminder_settings_screen.dart';
 import 'screens/events/feedback_collection_screen.dart';
 import 'screens/events/feedback_reports_screen.dart';
+import 'screens/notifications/notification_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,6 +101,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   List<Attendee> _attendees = [];
   List<Reminder> _reminders = [];
   List<FeedbackResponse> _feedbackResponses = [];
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -131,9 +133,24 @@ class _AppNavigatorState extends State<AppNavigator> {
           _user = User.fromJson(decodedUser);
           _currentPage = 'dashboard';
         });
+        _fetchUnreadCount();
       }
     } catch (e) {
       debugPrint('Error checking login status: $e');
+    }
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    if (_token.isEmpty) return;
+    try {
+      final response = await AuthRepository(ApiClient()).getUnreadCount(_token);
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = response.unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching unread count: $e');
     }
   }
 
@@ -421,6 +438,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'settings':
         case 'privacy':
         case 'terms':
+        case 'notifications':
           _currentPage = 'dashboard';
           break;
         default:
@@ -474,6 +492,19 @@ class _AppNavigatorState extends State<AppNavigator> {
           onLogout: _handleLogout,
           onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
           onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+          onNavigateToNotifications: () async {
+            setState(() => _currentPage = 'notifications');
+          },
+          unreadCount: _unreadNotificationCount,
+        );
+      
+      case 'notifications':
+        return NotificationScreen(
+          token: _token,
+          onBack: () {
+            setState(() => _currentPage = 'dashboard');
+            _fetchUnreadCount();
+          },
         );
       
       case 'settings':

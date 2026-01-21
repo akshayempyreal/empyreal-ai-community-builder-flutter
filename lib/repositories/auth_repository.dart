@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../models/auth_models.dart';
+import '../models/notification.dart';
 import '../services/api_client.dart';
 
 class AuthRepository {
@@ -64,6 +65,33 @@ class AuthRepository {
   Future<void> logout(String token) async {
     await _apiClient.get(
       '/api/user/logout',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+  }
+
+  Future<NotificationResponse> getNotifications(String token, {int page = 1, int limit = 10}) async {
+    final response = await _apiClient.get(
+      '/api/user/notification?page=$page&limit=$limit',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return NotificationResponse.fromJson(response.data);
+  }
+
+  Future<UnreadCountResponse> getUnreadCount(String token) async {
+    final response = await _apiClient.get(
+      '/api/user/notification/unread-count',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return UnreadCountResponse.fromJson(response.data);
+  }
+
+  Future<void> markNotificationAsRead(String token, {String? id, bool readAll = false}) async {
+    await _apiClient.put(
+      '/api/user/notification/read',
+      data: {
+        "id": id,
+        "readAll": readAll,
+      },
       headers: {'Authorization': 'Bearer $token'},
     );
   }

@@ -14,6 +14,8 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onLogout;
   final VoidCallback onNavigateToProfile;
   final VoidCallback onNavigateToSettings;
+  final VoidCallback onNavigateToNotifications;
+  final int unreadCount;
 
   const DashboardScreen({
     super.key,
@@ -24,6 +26,8 @@ class DashboardScreen extends StatelessWidget {
     required this.onLogout,
     required this.onNavigateToProfile,
     required this.onNavigateToSettings,
+    required this.onNavigateToNotifications,
+    required this.unreadCount,
   });
 
   @override
@@ -57,21 +61,34 @@ class DashboardScreen extends StatelessWidget {
             icon: Stack(
               children: [
                 const Icon(Icons.notifications_outlined),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.red500,
-                      shape: BoxShape.circle,
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.red500,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
-            onPressed: () {},
+            onPressed: onNavigateToNotifications,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
