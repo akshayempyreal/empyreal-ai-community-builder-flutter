@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'models/auth_models.dart';
 import 'theme/app_theme.dart';
 import 'models/user.dart';
@@ -27,7 +30,23 @@ import 'screens/events/reminder_settings_screen.dart';
 import 'screens/events/feedback_collection_screen.dart';
 import 'screens/events/feedback_reports_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  // Enable Crashlytics collection
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+
+  // Pass all uncaught "fatal" errors from the framework to Crashlytics
+  FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+  };
+  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
+
   runApp(const MyApp());
 }
 
@@ -78,7 +97,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final userData = prefs.getString('user');
-      
+
       if (token != null && userData != null && token.isNotEmpty) {
         final decodedUser = jsonDecode(userData);
         setState(() {
@@ -156,7 +175,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   Future<void> _saveSession(dynamic user, String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', token);
-    
+
     User sessionUser;
     if (user is UserModel) {
       sessionUser = User(
@@ -387,7 +406,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           token: _token,
           onProfileCompleted: _handleProfileCompleted,
         );
-      
+
       case 'register':
         return RegisterScreen(
           onRegister: _handleRegister,

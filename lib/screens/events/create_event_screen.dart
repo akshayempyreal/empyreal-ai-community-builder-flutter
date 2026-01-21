@@ -95,42 +95,44 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 800),
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            children: [
-              // Progress indicator
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isSmall = constraints.maxWidth < 600;
-                  final connectorWidth = isSmall ? 20.0 : 60.0;
-                  
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildStepIndicator(0, 'Event Details'),
-                        Container(
-                          width: connectorWidth,
-                          height: 2,
-                          color: _currentStep >= 1 ? AppTheme.primaryIndigo : AppTheme.gray300,
-                        ),
-                        _buildStepIndicator(1, 'Planning Mode'),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-              
-              // Form
-              Form(
-                key: _formKey,
-                child: _currentStep == 0 ? _buildStep1() : _buildStep2(),
-              ),
-            ],
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800),
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              children: [
+                // Progress indicator
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isSmall = constraints.maxWidth < 600;
+                    final connectorWidth = isSmall ? 20.0 : 60.0;
+                    
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildStepIndicator(0, 'Event Details'),
+                          Container(
+                            width: connectorWidth,
+                            height: 2,
+                            color: _currentStep >= 1 ? AppTheme.primaryIndigo : AppTheme.gray300,
+                          ),
+                          _buildStepIndicator(1, 'Planning Mode'),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+                
+                // Form
+                Form(
+                  key: _formKey,
+                  child: _currentStep == 0 ? _buildStep1() : _buildStep2(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
