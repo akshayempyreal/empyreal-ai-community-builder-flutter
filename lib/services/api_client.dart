@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  static const String baseUrl = 'https://j6xnc2h8-3001.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://team3api.empyreal.in';
   
   final Dio _dio = Dio(
     BaseOptions(

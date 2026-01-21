@@ -66,6 +66,7 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
   }
 
   void _verifyOtp(String otp) {
+    FocusScope.of(context).unfocus();
     context.read<OtpBloc>().add(OtpSubmitted(userId: widget.userId, otp: otp));
   }
 

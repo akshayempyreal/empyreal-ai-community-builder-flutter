@@ -13,6 +13,7 @@ class DashboardScreen extends StatelessWidget {
   final Function(Event) onSelectEvent;
   final VoidCallback onLogout;
   final VoidCallback onNavigateToProfile;
+  final VoidCallback onNavigateToSettings;
 
   const DashboardScreen({
     super.key,
@@ -22,6 +23,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onSelectEvent,
     required this.onLogout,
     required this.onNavigateToProfile,
+    required this.onNavigateToSettings,
   });
 
   @override
@@ -117,6 +119,13 @@ class DashboardScreen extends StatelessWidget {
                   child: const ListTile(
                     leading: Icon(Icons.person_outline),
                     title: Text('Profile'),
+                  ),
+                ),
+                PopupMenuItem(
+                  onTap: onNavigateToSettings,
+                  child: const ListTile(
+                    leading: Icon(Icons.settings_outlined),
+                    title: Text('Settings'),
                   ),
                 ),
                 PopupMenuItem(

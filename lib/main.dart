@@ -18,6 +18,8 @@ import 'screens/auth/otp_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
+import 'screens/settings/webview_screen.dart';
 import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -414,6 +416,9 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'feedback-reports':
         case 'profile':
         case 'edit-profile':
+        case 'settings':
+        case 'privacy':
+        case 'terms':
           _currentPage = 'dashboard';
           break;
         default:
@@ -466,6 +471,30 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSelectEvent: _handleSelectEvent,
           onLogout: _handleLogout,
           onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+        );
+      
+      case 'settings':
+        return SettingsScreen(
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          onLogout: _handleLogout,
+          onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+          onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+        );
+      
+      case 'privacy':
+        return AppWebViewScreen(
+          title: 'Privacy Policy',
+          url: '${ApiClient.baseUrl}/privacy-policy',
+          onBack: () => setState(() => _currentPage = 'settings'),
+        );
+      
+      case 'terms':
+        return AppWebViewScreen(
+          title: 'Terms & Conditions',
+          url: '${ApiClient.baseUrl}/terms-and-conditions',
+          onBack: () => setState(() => _currentPage = 'settings'),
         );
 
       case 'profile':
