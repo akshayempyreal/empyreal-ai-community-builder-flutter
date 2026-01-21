@@ -1,3 +1,5 @@
+import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -486,14 +488,14 @@ class _AppNavigatorState extends State<AppNavigator> {
       case 'privacy':
         return AppWebViewScreen(
           title: 'Privacy Policy',
-          url: '${ApiClient.baseUrl}/privacy-policy',
+          url: '${ApiConstants.baseUrl}/privacy-policy',
           onBack: () => setState(() => _currentPage = 'settings'),
         );
       
       case 'terms':
         return AppWebViewScreen(
           title: 'Terms & Conditions',
-          url: '${ApiClient.baseUrl}/terms-and-conditions',
+          url: '${ApiConstants.baseUrl}/terms-and-conditions',
           onBack: () => setState(() => _currentPage = 'settings'),
         );
 
