@@ -1,4 +1,4 @@
-package com.example.empyreal_ai_community_builder_flutter
+package com.EvoMeet.com
 
 import io.flutter.embedding.android.FlutterActivity
 
