@@ -143,6 +143,7 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                         // OTP Input Boxes
                         Pinput(
                           length: 6,
+                          autofocus: true,
                           controller: _otpController,
                           onCompleted: _verifyOtp,
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

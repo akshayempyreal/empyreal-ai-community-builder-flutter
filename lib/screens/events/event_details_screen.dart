@@ -58,141 +58,200 @@ class EventDetailsScreen extends StatelessWidget {
             final headerPadding = context.isMobile ? 16.0 : 24.0;
             final titleSize = context.isMobile ? 22.0 : 28.0;
 
+            final imageHeight = context.isMobile ? 260.0 : 450.0;
+            final contentMaxWidth = 1100.0;
+            final isDesktop = viewport.maxWidth >= 900;
+
             return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: viewport.maxWidth >= 700 ? double.infinity : 0,
-                  maxWidth: viewport.maxWidth >= 700 ? double.infinity : 860,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Event Image
-                    if (event.image != null && event.image!.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: 16.radius,
-                        child: Image.network(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Cinematic Hero Image Header
+                  Stack(
+                    children: [
+                      if (event.image != null && event.image!.isNotEmpty)
+                        Image.network(
                           event.image!.fixImageUrl,
-                          height: 200,
+                          height: imageHeight,
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
-                            height: 200,
+                            height: imageHeight,
                             width: double.infinity,
                             color: AppTheme.indigo100,
                             child: const Icon(Icons.image_not_supported_outlined, 
                                 color: AppTheme.primaryIndigo, size: 48),
                           ),
+                        )
+                      else
+                        Container(
+                          height: 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppTheme.primaryIndigo.withOpacity(0.1), AppTheme.primaryPurple.withOpacity(0.1)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
                         ),
-                      ).paddingOnly(bottom: 16),
-
-                    // Event header Card
-                    Card(
-                      elevation: 0,
-                      shape: 16.roundBorder.copyWith(
-                        side: BorderSide(color: AppTheme.gray200),
+                      // Subtle gradient overlay for better text contrast if needed
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.2),
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.1),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
+
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: contentMaxWidth),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              StatusBadge(status: event.status),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.indigo100,
-                                  borderRadius: 20.radius,
-                                ),
-                                child: Text(
-                                  _getDaysLeft(event.date),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryIndigo,
+                          // Floating Event Header Card
+                          Transform.translate(
+                            offset: Offset(0, context.isMobile ? -30 : -50),
+                            child: Card(
+                              elevation: 8,
+                              shadowColor: Colors.black.withOpacity(0.15),
+                              shape: 20.roundBorder.copyWith(
+                                side: const BorderSide(color: Colors.white, width: 2),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      StatusBadge(status: event.status),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.indigo100,
+                                          borderRadius: 20.radius,
+                                        ),
+                                        child: Text(
+                                          _getDaysLeft(event.date).upper,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            color: AppTheme.primaryIndigo,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          16.height(context),
-                          Text(
-                            event.name,
-                            style: TextStyle(
-                              fontSize: titleSize,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.gray900,
-                              letterSpacing: -0.5,
+                                  16.height(context),
+                                  Text(
+                                    event.name,
+                                    style: TextStyle(
+                                      fontSize: context.isMobile ? 24 : 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppTheme.gray900,
+                                      letterSpacing: -1,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                  12.height(context),
+                                  Text(
+                                    event.description,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppTheme.gray600,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ).paddingAll(context, context.isMobile ? 20 : 32),
                             ),
                           ),
-                          8.height(context),
-                          Text(
-                            event.description,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              color: AppTheme.gray600,
-                              height: 1.5,
+                      
+                      const SizedBox(height: 4),
+
+                      // Logistics Card (When & Where)
+                      Card(
+                        elevation: 0,
+                        shape: 16.roundBorder.copyWith(
+                          side: BorderSide(color: AppTheme.gray200),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildLogisticsItem(
+                              context,
+                              Icons.calendar_today_rounded,
+                              'Schedule',
+                              _formatDateRange(event.date, event.endDate),
                             ),
-                          ),
-                          24.height(context),
-                          
-                          // Main info grid
-                          Wrap(
-                            spacing: 24,
-                            runSpacing: 16,
-                            children: [
-                              _buildInfoItem(
-                                context,
-                                Icons.calendar_today_outlined,
-                                'Event Dates',
-                                _formatDateRange(event.date, event.endDate),
-                              ),
-                              _buildInfoItem(
-                                context,
-                                Icons.location_on_outlined,
-                                'Location',
-                                event.location,
-                                onIconTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Opening Location on Map...')),
-                                  );
-                                },
-                              ),
-                              _buildInfoItem(
-                                context,
-                                Icons.access_time,
-                                'Duration',
-                                '${event.duration} hours / day',
-                              ),
-                              if (event.audienceSize != null)
-                                _buildInfoItem(
-                                  context,
-                                  Icons.group_outlined,
-                                  'Expected',
-                                  '${event.audienceSize} people',
-                                ),
-                              if (event.attendeeCount != null)
-                                _buildInfoItem(
-                                  context,
-                                  Icons.people_outline,
-                                  'Registered',
-                                  '${event.attendeeCount} members',
-                                ),
-                              _buildInfoItem(
-                                context,
-                                event.planningMode == 'automated'
-                                    ? Icons.auto_awesome
-                                    : Icons.edit_note,
-                                'Mode',
-                                event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
-                              ),
-                            ],
-                          ).paddingOnly(top: 16),
-                        ],
-                      ).paddingAll(context, headerPadding),
-                    ),
-                    24.height(context),
+                            const Divider(height: 1, color: AppTheme.gray100).paddingHorizontal(context, 16),
+                            _buildLogisticsItem(
+                              context,
+                              Icons.location_on_rounded,
+                              'Location',
+                              event.location,
+                              isClickable: true,
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Opening Location on Map...')),
+                                );
+                              },
+                            ),
+                            const Divider(height: 1, color: AppTheme.gray100).paddingHorizontal(context, 16),
+                            _buildLogisticsItem(
+                              context,
+                              Icons.timer_rounded,
+                              'Typical Duration',
+                              '${event.duration} hours per session',
+                            ),
+                          ],
+                        ),
+                      ),
+                      20.height(context),
+
+                      // Stats Row
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildStatBadge(
+                              context,
+                              event.audienceSize?.toString() ?? '0',
+                              'Capacity',
+                              Icons.group_rounded,
+                              AppTheme.primaryIndigo,
+                            ),
+                            12.width,
+                            _buildStatBadge(
+                              context,
+                              event.attendeeCount?.toString() ?? '0',
+                              'Registered',
+                              Icons.person_add_rounded,
+                              AppTheme.green600,
+                            ),
+                            12.width,
+                            _buildStatBadge(
+                              context,
+                              event.planningMode == 'automated' ? 'AI' : 'Manual',
+                              'Mode',
+                              event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
+                              AppTheme.primaryPurple,
+                            ),
+                          ],
+                        ),
+                      ).paddingHorizontal(context, 4),
+                      24.height(context),
 
                     // Action cards Grid
                     GridView.count(
@@ -236,48 +295,110 @@ class EventDetailsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ],
-                ).paddingHorizontal(context, horizontalPadding).paddingVertical(context, 16),
+                    const SizedBox(height: 32),
+                    ],
+                  ).paddingHorizontal(context, horizontalPadding),
+                ),
               ),
-            );
+            ],
+          ),
+        );
           },
         ),
       ),
     );
   }
 
-  Widget _buildInfoItem(BuildContext context, IconData icon, String label, String value, {VoidCallback? onIconTap}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: AppTheme.primaryIndigo),
-            if (onIconTap != null)
-              const Icon(Icons.open_in_new, size: 10, color: AppTheme.primaryIndigo).paddingHorizontal(context, 4).onClick(onIconTap),
-            6.width,
-            Text(
-              label.upper,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.gray500,
-                letterSpacing: 0.8,
-              ),
+  Widget _buildLogisticsItem(
+    BuildContext context, 
+    IconData icon, 
+    String label, 
+    String value, 
+    {bool isClickable = false, VoidCallback? onTap}
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.gray50,
+              borderRadius: 12.radius,
             ),
-          ],
-        ),
-        4.height(context),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.gray900,
+            child: Icon(icon, size: 20, color: AppTheme.primaryIndigo),
           ),
-        ),
-      ],
+          16.width,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.gray500,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.gray900,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          if (isClickable)
+            const Icon(Icons.chevron_right_rounded, color: AppTheme.gray400),
+        ],
+      ).paddingAll(context, 16),
+    );
+  }
+
+  Widget _buildStatBadge(BuildContext context, String value, String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: 16.radius,
+        border: Border.all(color: AppTheme.gray200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          10.width,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.gray900,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray500,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

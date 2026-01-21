@@ -18,23 +18,27 @@ class EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: 16.roundBorder.copyWith(
+        side: const BorderSide(color: AppTheme.gray200),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: 16.radius,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Event Image or Placeholder
             if (event.image != null && event.image!.isNotEmpty)
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.network(
                   event.image!.fixImageUrl,
-                  height: 140,
+                  height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    height: 140,
+                    height: 160,
                     width: double.infinity,
                     color: AppTheme.indigo100,
                     child: const Icon(Icons.broken_image_outlined, color: AppTheme.primaryIndigo, size: 48),
@@ -43,135 +47,129 @@ class EventCard extends StatelessWidget {
               )
             else
               Container(
-                height: 140,
+                height: 160,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppTheme.indigo100,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: const Icon(Icons.image_outlined, color: AppTheme.primaryIndigo, size: 48),
               ),
 
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with status and type
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      StatusBadge(status: event.status),
-                      Text(
-                        event.type.upper,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.gray500,
-                          letterSpacing: 0.5,
-                        ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    StatusBadge(status: event.status),
+                    Text(
+                      event.type.upper,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.gray400,
+                        letterSpacing: 1.2,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Event name
-                  Text(
-                    event.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.gray900,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  // Description
-                  Text(
-                    event.description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.gray600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Event details
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 14, color: AppTheme.gray600),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDate(event.date),
-                        style: const TextStyle(fontSize: 13, color: AppTheme.gray600),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 14, color: AppTheme.gray600),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${event.duration} hours / day',
-                        style: const TextStyle(fontSize: 13, color: AppTheme.gray600),
-                      ),
-                    ],
-                  ),
-                  
-                  if (event.attendeeCount != null) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.people, size: 14, color: AppTheme.gray600),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${event.attendeeCount} ${event.attendeeCount == 1 ? 'member' : 'members'}',
-                          style: const TextStyle(fontSize: 13, color: AppTheme.gray600),
-                        ),
-                      ],
                     ),
                   ],
-                  
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  
-                  // Planning mode badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppTheme.gray200),
-                      borderRadius: 6.radius,
-                      color: AppTheme.gray50,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
-                          size: 14,
-                          color: AppTheme.gray600,
-                        ),
-                        6.width,
-                        Text(
-                          event.planningMode == 'automated' ? 'AI Generated' : 'Manual',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.gray700, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
+                ),
+                12.height(context),
+                
+                Text(
+                  event.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.5,
                   ),
-                ],
-              ),
-            ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                4.height(context),
+                
+                Text(
+                  event.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.gray600,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                20.height(context),
+                
+                // Details Grid - Clean logistics hub
+                Row(
+                  children: [
+                    _buildCompactInfo(Icons.calendar_today_rounded, _formatDate(event.date)),
+                    const Spacer(),
+                    _buildCompactInfo(Icons.timer_rounded, '${event.duration}h/day'),
+                    const Spacer(),
+                    _buildCompactInfo(Icons.group_rounded, '${event.attendeeCount ?? 0} members'),
+                  ],
+                ),
+                
+                20.height(context),
+                
+                // Footer Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray50,
+                        borderRadius: 8.radius,
+                        border: Border.all(color: AppTheme.gray200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
+                            size: 14,
+                            color: AppTheme.primaryIndigo,
+                          ),
+                          8.width,
+                          Text(
+                            event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
+                            style: const TextStyle(
+                              fontSize: 11, 
+                              color: AppTheme.gray700, 
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_rounded, size: 18, color: AppTheme.gray400),
+                  ],
+                ),
+              ],
+            ).paddingAll(context, 20),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCompactInfo(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppTheme.primaryIndigo),
+        6.width,
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.gray600,
+          ),
+        ),
+      ],
     );
   }
 
