@@ -12,6 +12,8 @@ class Event {
   final String status; // 'draft', 'published', 'ongoing', 'completed'
   final String createdAt;
   final int? attendeeCount;
+  final double? latitude;
+  final double? longitude;
 
   Event({
     required this.id,
@@ -27,6 +29,8 @@ class Event {
     required this.status,
     required this.createdAt,
     this.attendeeCount,
+    this.latitude,
+    this.longitude,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class Event {
       status: json['status'] as String,
       createdAt: json['createdAt'] as String,
       attendeeCount: json['attendeeCount'] as int?,
+      latitude: json['latitude'] as double?,
+      longitude: json['longitude'] as double?,
     );
   }
 
@@ -62,6 +68,8 @@ class Event {
       'status': status,
       'createdAt': createdAt,
       'attendeeCount': attendeeCount,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }

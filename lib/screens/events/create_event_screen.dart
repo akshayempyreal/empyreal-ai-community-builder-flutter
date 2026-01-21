@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../theme/app_theme.dart';
@@ -33,6 +35,30 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _durationController = TextEditingController();
   final _audienceSizeController = TextEditingController();
   String _planningMode = 'automated';
+  
+  // New state for location selection
+  List<Map<String, dynamic>> _allLocations = [];
+  double? _selectedLat;
+  double? _selectedLng;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocations();
+  }
+
+  // Task 2: Load locations from local JSON using rootBundle
+  Future<void> _loadLocations() async {
+    try {
+      final String response = await rootBundle.loadString('assets/locations.json');
+      final List<dynamic> data = json.decode(response);
+      setState(() {
+        _allLocations = data.cast<Map<String, dynamic>>();
+      });
+    } catch (e) {
+      debugPrint('Error loading locations: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -69,6 +95,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         status: 'draft',
         createdAt: DateTime.now().toIso8601String(),
         attendeeCount: 0,
+        latitude: _selectedLat,
+        longitude: _selectedLng,
       );
       widget.onCreateEvent(event);
     }
@@ -329,16 +357,86 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Location
-                TextFormField(
-                  controller: _locationController,
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  decoration: const InputDecoration(
-                    labelText: 'Location *',
-                    hintText: 'e.g., Central Park, New York',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                // Task 3: Autocomplete / Searchable dropdown for Location
+                Autocomplete<Map<String, dynamic>>(
+                  displayStringForOption: (option) => option['name'] as String,
+                  initialValue: TextEditingValue(text: _locationController.text),
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return const Iterable<Map<String, dynamic>>.empty();
+                    }
+                    return _allLocations.where((location) {
+                      return location['name']
+                          .toString()
+                          .toLowerCase()
+                          .contains(textEditingValue.text.toLowerCase());
+                    });
+                  },
+                  onSelected: (Map<String, dynamic> selection) {
+                    setState(() {
+                      _locationController.text = selection['name'];
+                      _selectedLat = selection['latitude'];
+                      _selectedLng = selection['longitude'];
+                    });
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    // Sync internal controller with autocomplete controller if needed
+                    // but Autocomplete manages its own controller usually.
+                    // We use the provided 'controller' for the UI.
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      decoration: const InputDecoration(
+                        labelText: 'Location *',
+                        hintText: 'Search city, park or venue...',
+                        prefixIcon: Icon(Icons.location_on_outlined),
+                      ),
+                      onChanged: (value) {
+                        // If user clears or changes text, we should probably reset lat/lng
+                        // unless it matches an option later.
+                        _locationController.text = value;
+                        if (_selectedLat != null) {
+                          setState(() {
+                            _selectedLat = null;
+                            _selectedLng = null;
+                          });
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Required';
+                        if (_selectedLat == null) return 'Please select a location from the list';
+                        return null;
+                      },
+                    );
+                  },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4.0,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width > 800 ? 752 : MediaQuery.of(context).size.width - 48,
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final option = options.elementAt(index);
+                              return ListTile(
+                                leading: const Icon(Icons.location_on, color: AppTheme.gray400),
+                                title: Text(option['name']),
+                                subtitle: Text('Lat: ${option['latitude']}, Lng: ${option['longitude']}', style: const TextStyle(fontSize: 10)),
+                                onTap: () => onSelected(option),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 
