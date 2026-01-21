@@ -1,0 +1,275 @@
+import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
+import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
+import 'package:empyreal_ai_community_builder_flutter/widgets/event_card.dart';
+import 'package:empyreal_ai_community_builder_flutter/widgets/stat_card.dart';
+import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
+
+class DashboardScreen extends StatelessWidget {
+  final User user;
+  final List<Event> events;
+  final VoidCallback onCreateEvent;
+  final Function(Event) onSelectEvent;
+  final VoidCallback onLogout;
+  final VoidCallback onNavigateToProfile;
+
+  const DashboardScreen({
+    super.key,
+    required this.user,
+    required this.events,
+    required this.onCreateEvent,
+    required this.onSelectEvent,
+    required this.onLogout,
+    required this.onNavigateToProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = _calculateStats();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120.0,
+            floating: true,
+            pinned: true,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                context.tr('common.app_name'),
+                style: TextStyle(
+                  color: isDark ? AppColors.slate50 : AppColors.slate900,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark 
+                      ? [AppColors.slate900, AppColors.slate800] 
+                      : [AppColors.slate50, Colors.white],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {},
+              ),
+              GestureDetector(
+                onTap: onNavigateToProfile,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: Text(
+                      user.name[0].toUpperCase(),
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('dashboard.welcome', arguments: {'name': user.name.split(' ')[0]}),
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr('dashboard.summary'),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Stats row
+                  _buildStatsGrid(context, stats),
+                  const SizedBox(height: 32),
+
+                  // Create Event Banner
+                  _buildCreateBanner(context),
+                  const SizedBox(height: 40),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        context.tr('dashboard.your_events'),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.filter_list, size: 18),
+                        label: const Text('Filter'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildEventsList(context),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid(BuildContext context, Map<String, int> stats) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth > 800 ? 4 : 2;
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: constraints.maxWidth > 600 ? 1.5 : 1.1,
+          children: [
+            StatCard(
+              title: context.tr('dashboard.total_events'),
+              value: stats['totalEvents'].toString(),
+              icon: Icons.calendar_today,
+              iconColor: AppColors.primary,
+            ),
+            StatCard(
+              title: context.tr('dashboard.active_events'),
+              value: stats['activeEvents'].toString(),
+              icon: Icons.bolt,
+              iconColor: AppColors.success,
+            ),
+            StatCard(
+              title: context.tr('dashboard.total_attendees'),
+              value: stats['totalAttendees'].toString(),
+              icon: Icons.people_outline,
+              iconColor: AppColors.secondary,
+            ),
+            StatCard(
+              title: context.tr('dashboard.completed_events'),
+              value: stats['completedEvents'].toString(),
+              icon: Icons.check_circle_outline,
+              iconColor: AppColors.info,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCreateBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('dashboard.create_event_title'),
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.tr('dashboard.create_event_desc'),
+                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: onCreateEvent,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: Text(context.tr('dashboard.new_event'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Icon(Icons.auto_awesome, size: 80, color: Colors.white24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventsList(BuildContext context) {
+    if (events.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          child: Column(
+            children: [
+              Icon(Icons.event_note_outlined, size: 64, color: AppColors.slate300),
+              const SizedBox(height: 16),
+              Text('No events found', style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth > 1200 ? 3 : (constraints.maxWidth > 700 ? 2 : 1);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.9,
+          ),
+          itemCount: events.length,
+          itemBuilder: (context, index) {
+            return EventCard(
+              event: events[index],
+              onTap: () => onSelectEvent(events[index]),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Map<String, int> _calculateStats() {
+    return {
+      'totalEvents': events.length,
+      'activeEvents': events.where((e) => e.status == 'ongoing' || e.status == 'published').length,
+      'totalAttendees': events.fold(0, (sum, e) => sum + (e.attendeeCount ?? 0)),
+      'completedEvents': events.where((e) => e.status == 'completed').length,
+    };
+  }
+}

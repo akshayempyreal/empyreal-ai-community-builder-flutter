@@ -6,34 +6,37 @@ import 'package:flutter/foundation.dart';
 import 'models/auth_models.dart';
 import 'dart:ui';
 import 'services/notification_service.dart';
-import 'theme/app_theme.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'core/localization/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'models/user.dart';
 import 'models/event.dart';
 import 'models/agenda_item.dart';
 import 'models/attendee.dart';
 import 'models/reminder.dart';
 import 'models/feedback_response.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/otp_screen.dart';
-import 'screens/auth/register_screen.dart';
-import 'screens/profile/profile_screen.dart';
-import 'screens/profile/edit_profile_screen.dart';
-import 'screens/auth/complete_profile_screen.dart';
-import 'screens/auth/forgot_password_screen.dart';
+import 'ui/screens/auth/login_screen.dart';
+import 'ui/screens/auth/otp_screen.dart';
+import 'ui/screens/auth/register_screen.dart';
+import 'ui/screens/profile/profile_screen.dart';
+import 'ui/screens/profile/edit_profile_screen.dart';
+import 'ui/screens/auth/complete_profile_screen.dart';
+import 'ui/screens/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'repositories/auth_repository.dart';
 import 'services/api_client.dart';
-import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/events/create_event_screen.dart';
-import 'screens/events/event_details_screen.dart';
-import 'screens/events/ai_agenda_builder_screen.dart';
-import 'screens/events/event_agenda_screen.dart';
-import 'screens/events/manual_agenda_editor_screen.dart';
-import 'screens/events/attendee_management_screen.dart';
-import 'screens/events/reminder_settings_screen.dart';
-import 'screens/events/feedback_collection_screen.dart';
-import 'screens/events/feedback_reports_screen.dart';
+import 'ui/screens/dashboard/dashboard_screen.dart';
+import 'ui/screens/events/create_event_screen.dart';
+import 'ui/screens/events/event_details_screen.dart';
+import 'ui/screens/events/ai_agenda_builder_screen.dart';
+import 'ui/screens/events/event_agenda_screen.dart';
+import 'ui/screens/events/manual_agenda_editor_screen.dart';
+import 'ui/screens/events/attendee_management_screen.dart';
+import 'ui/screens/events/reminder_settings_screen.dart';
+import 'ui/screens/events/feedback_collection_screen.dart';
+import 'ui/screens/events/feedback_reports_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +73,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AI Event Builder',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // Respect system theme
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('hi', ''),
+      ],
       home: const AppNavigator(),
       debugShowCheckedModeBanner: false,
     );

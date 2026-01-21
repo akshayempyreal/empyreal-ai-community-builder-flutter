@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../core/theme/app_theme.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status;
@@ -14,28 +14,28 @@ class StatusBadge extends StatelessWidget {
 
     switch (status.toLowerCase()) {
       case 'draft':
-        backgroundColor = AppTheme.statusDraft;
-        textColor = AppTheme.statusDraftText;
+        backgroundColor = AppColors.statusDraft;
+        textColor = AppColors.statusDraftText;
         label = 'Draft';
         break;
       case 'published':
-        backgroundColor = AppTheme.statusPublished;
-        textColor = AppTheme.statusPublishedText;
+        backgroundColor = AppColors.statusPublished;
+        textColor = AppColors.statusPublishedText;
         label = 'Published';
         break;
       case 'ongoing':
-        backgroundColor = AppTheme.statusOngoing;
-        textColor = AppTheme.statusOngoingText;
+        backgroundColor = AppColors.statusOngoing;
+        textColor = AppColors.statusOngoingText;
         label = 'Ongoing';
         break;
       case 'completed':
-        backgroundColor = AppTheme.statusCompleted;
-        textColor = AppTheme.statusCompletedText;
+        backgroundColor = AppColors.statusCompleted;
+        textColor = AppColors.statusCompletedText;
         label = 'Completed';
         break;
       default:
-        backgroundColor = AppTheme.statusDraft;
-        textColor = AppTheme.statusDraftText;
+        backgroundColor = AppColors.statusDraft;
+        textColor = AppColors.statusDraftText;
         label = status;
     }
 

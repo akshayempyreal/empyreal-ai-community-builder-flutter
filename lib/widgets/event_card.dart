@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
-import '../theme/app_theme.dart';
+import '../core/theme/app_theme.dart';
 import 'status_badge.dart';
 
-class EventCard extends StatelessWidget {
+class EventCard extends StatefulWidget {
   final Event event;
   final VoidCallback onTap;
 
@@ -14,112 +14,105 @@ class EventCard extends StatelessWidget {
   });
 
   @override
+  State<EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<EventCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with status and type
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        transform: _isHovered ? (Matrix4.identity()..translate(0, -8, 0)) : Matrix4.identity(),
+        child: Card(
+          elevation: _isHovered ? 12 : (isDark ? 0 : 2),
+          shadowColor: AppColors.primary.withOpacity(0.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: _isHovered ? AppColors.primary.withOpacity(0.5) : AppColors.borderLight.withOpacity(isDark ? 0.1 : 1),
+              width: _isHovered ? 2 : 1,
+            ),
+          ),
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  StatusBadge(status: event.status),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      StatusBadge(status: widget.event.status),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          widget.event.type.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    event.type,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.gray500,
+                    widget.event.name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              // Event name
-              Text(
-                event.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.gray900,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              
-              // Description
-              Text(
-                event.description,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.gray600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 16),
-              
-              // Event details
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16, color: AppTheme.gray600),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    _formatDate(event.date),
-                    style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              
-              Row(
-                children: [
-                  const Icon(Icons.access_time, size: 16, color: AppTheme.gray600),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${event.duration} hours',
-                    style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
-                  ),
-                ],
-              ),
-              
-              if (event.attendeeCount != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.people, size: 16, color: AppTheme.gray600),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${event.attendeeCount} attendees',
-                      style: const TextStyle(fontSize: 14, color: AppTheme.gray600),
+                    widget.event.description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      height: 1.4,
+                      color: isDark ? AppColors.slate400 : AppColors.slate600,
                     ),
-                  ],
-                ),
-              ],
-              
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
-              
-              // Planning mode badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppTheme.gray300),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  event.planningMode == 'automated' ? '🤖 AI Generated' : '✏️ Manual',
-                  style: const TextStyle(fontSize: 12),
-                ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  const Divider(height: 32),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primary.withOpacity(0.7)),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(widget.event.date),
+                        style: TextStyle(fontSize: 13, color: isDark ? AppColors.slate400 : AppColors.slate600),
+                      ),
+                      const Spacer(),
+                      if (widget.event.attendeeCount != null) ...[
+                        Icon(Icons.people_outline, size: 16, color: AppColors.secondary.withOpacity(0.7)),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.event.attendeeCount.toString(),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? AppColors.slate300 : AppColors.slate700),
+                        ),
+                      ]
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
