@@ -47,14 +47,11 @@ class AIAgendaBuilderScreen extends StatelessWidget {
           ),
         ),
       ),
+      bottomNavigationBar: MediaQuery.of(context).size.width < 600
+          ? _buildBottomNav()
+          : null,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // responsive layout: center on large screens
-            return Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
+        child: Column(
                   children: [
                     Expanded(
                       child: SingleChildScrollView(
@@ -157,13 +154,9 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _buildBottomNav(),
                   ],
                 ),
-              ),
-            );
-          },
-        ),
+
       ),
     );
   }
@@ -448,15 +441,19 @@ class AIAgendaBuilderScreen extends StatelessWidget {
         color: Colors.white,
         border: Border(top: BorderSide(color: AppTheme.gray200)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildNavItem(Icons.auto_awesome, 'Generate', true),
-          _buildNavItem(Icons.calendar_today, 'Agenda', false),
-          _buildNavItem(Icons.people, 'Speakers', false),
-          _buildNavItem(Icons.settings, 'Setup', false),
-        ],
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildNavItem(Icons.auto_awesome, 'Generate', true),
+              _buildNavItem(Icons.calendar_today, 'Agenda', false),
+              _buildNavItem(Icons.people, 'Speakers', false),
+              _buildNavItem(Icons.settings, 'Setup', false),
+            ],
+          ),
+        ),
       ),
     );
   }
