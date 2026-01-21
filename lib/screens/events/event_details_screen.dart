@@ -69,14 +69,19 @@ class EventDetailsScreen extends StatelessWidget {
                   children: [
                     // Event Image
                     if (event.image != null && event.image!.isNotEmpty)
-                      Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: 16.radius,
-                          image: DecorationImage(
-                            image: NetworkImage(event.image!.fixImageUrl),
-                            fit: BoxFit.cover,
+                      ClipRRect(
+                        borderRadius: 16.radius,
+                        child: Image.network(
+                          event.image!.fixImageUrl,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: AppTheme.indigo100,
+                            child: const Icon(Icons.image_not_supported_outlined, 
+                                color: AppTheme.primaryIndigo, size: 48),
                           ),
                         ),
                       ).paddingOnly(bottom: 16),
