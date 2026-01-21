@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../models/agenda_item.dart';
@@ -26,6 +28,9 @@ class EventDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
       backgroundColor: AppTheme.gray50,
       appBar: AppBar(
@@ -47,145 +52,159 @@ class EventDetailsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Event header
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            StatusBadge(status: event.status),
-                            Text(
-                              event.type,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.gray500,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, viewport) {
+            // Web: use full width. Mobile: full-width with smaller gutters.
+            final useFullWidth = kIsWeb && viewport.maxWidth >= 700;
+            final horizontalPadding =
+                isMobile ? 16.0 : viewport.maxWidth < 900 ? 24.0 : 32.0;
+
+            // Effective content width after constraints + padding (used for grid breakpoints).
+            final effectiveWidth =
+                (viewport.maxWidth - (horizontalPadding * 2)).clamp(0.0, double.infinity);
+
+            // Smooth grid scaling on large screens (web/desktop).
+            // Approx 320px min card width + gaps/padding.
+            final computedCount = math.max(1, (effectiveWidth / 320).floor());
+            final crossAxisCount = isMobile ? 1 : computedCount.clamp(1, 4);
+
+            final headerPadding = isMobile ? 16.0 : 24.0;
+            final titleSize = isMobile ? 22.0 : 28.0;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                16,
+                horizontalPadding,
+                24,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  // On web/desktop we want the content to span the full width
+                  // inside the padding; on smaller screens we keep it natural.
+                  minWidth: useFullWidth ? double.infinity : 0,
+                  maxWidth: useFullWidth ? double.infinity : 860,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                      // Event header
+                      Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(headerPadding),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  StatusBadge(status: event.status),
+                                  Text(
+                                    event.type,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.gray500,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          event.name,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.gray900,
+                              const SizedBox(height: 16),
+                              Text(
+                                event.name,
+                                style: TextStyle(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.gray900,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                event.description,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppTheme.gray600,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Wrap(
+                                spacing: 20,
+                                runSpacing: 12,
+                                children: [
+                                  _buildInfoItem(
+                                    Icons.calendar_today,
+                                    _formatDate(event.date),
+                                  ),
+                                  _buildInfoItem(
+                                    Icons.access_time,
+                                    '${event.duration} hours',
+                                  ),
+                                  if (event.attendeeCount != null)
+                                    _buildInfoItem(
+                                      Icons.people,
+                                      '${event.attendeeCount} attendees',
+                                    ),
+                                  _buildInfoItem(
+                                    event.planningMode == 'automated'
+                                        ? Icons.auto_awesome
+                                        : Icons.edit,
+                                    event.planningMode == 'automated' ? 'AI Generated' : 'Manual',
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          event.description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: AppTheme.gray600,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action cards grid
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: crossAxisCount == 1
+                            ? 1.9
+                            : crossAxisCount >= 4
+                                ? 1.1
+                                : 1.35,
+                        children: [
+                          _buildActionCard(
+                            context,
+                            title: 'Agenda',
+                            subtitle: '${agendaItems.length} items',
+                            icon: Icons.list_alt,
+                            iconColor: AppTheme.primaryIndigo,
+                            iconBg: AppTheme.indigo100,
+                            onTap: () => onNavigate('agenda-view'),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        Wrap(
-                          spacing: 24,
-                          runSpacing: 16,
-                          children: [
-                            _buildInfoItem(
-                              Icons.calendar_today,
-                              _formatDate(event.date),
-                            ),
-                            _buildInfoItem(
-                              Icons.access_time,
-                              '${event.duration} hours',
-                            ),
-                            if (event.attendeeCount != null)
-                              _buildInfoItem(
-                                Icons.people,
-                                '${event.attendeeCount} attendees',
-                              ),
-                            _buildInfoItem(
-                              event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit,
-                              event.planningMode == 'automated' ? 'AI Generated' : 'Manual',
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          _buildActionCard(
+                            context,
+                            title: 'Attendees',
+                            subtitle: '${attendees.length} registered',
+                            icon: Icons.people,
+                            iconColor: AppTheme.green600,
+                            iconBg: AppTheme.statusOngoing,
+                            onTap: () => onNavigate('attendees'),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: 'Feedback',
+                            subtitle: 'Collect responses',
+                            icon: Icons.feedback,
+                            iconColor: AppTheme.primaryPurple,
+                            iconBg: AppTheme.statusCompleted,
+                            onTap: () => onNavigate('feedback-collection'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Action cards grid
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final crossAxisCount = constraints.maxWidth > 800 ? 3 : constraints.maxWidth > 500 ? 2 : 1;
-                    return GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.3,
-                      children: [
-                        _buildActionCard(
-                          context,
-                          title: 'Agenda',
-                          subtitle: '${agendaItems.length} items',
-                          icon: Icons.list_alt,
-                          iconColor: AppTheme.primaryIndigo,
-                          iconBg: AppTheme.indigo100,
-                          onTap: () => onNavigate(event.planningMode == 'automated' ? 'ai-agenda' : 'manual-agenda'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Attendees',
-                          subtitle: '${attendees.length} registered',
-                          icon: Icons.people,
-                          iconColor: AppTheme.green600,
-                          iconBg: AppTheme.statusOngoing,
-                          onTap: () => onNavigate('attendees'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Reminders',
-                          subtitle: 'Manage notifications',
-                          icon: Icons.notifications,
-                          iconColor: const Color(0xFFEAB308),
-                          iconBg: const Color(0xFFFEF3C7),
-                          onTap: () => onNavigate('reminders'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Feedback',
-                          subtitle: 'Collect responses',
-                          icon: Icons.feedback,
-                          iconColor: AppTheme.primaryPurple,
-                          iconBg: AppTheme.statusCompleted,
-                          onTap: () => onNavigate('feedback-collection'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Reports',
-                          subtitle: 'View analytics',
-                          icon: Icons.bar_chart,
-                          iconColor: AppTheme.blue600,
-                          iconBg: AppTheme.statusPublished,
-                          onTap: () => onNavigate('feedback-reports'),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

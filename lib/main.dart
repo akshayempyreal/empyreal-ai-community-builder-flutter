@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/otp_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/profile/edit_profile_screen.dart';
 import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +28,7 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/events/create_event_screen.dart';
 import 'screens/events/event_details_screen.dart';
 import 'screens/events/ai_agenda_builder_screen.dart';
+import 'screens/events/event_agenda_screen.dart';
 import 'screens/events/manual_agenda_editor_screen.dart';
 import 'screens/events/attendee_management_screen.dart';
 import 'screens/events/reminder_settings_screen.dart';
@@ -34,20 +37,24 @@ import 'screens/events/feedback_reports_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  // Initialize Firebase only on mobile platforms (skip on web)
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
 
-  // Enable Crashlytics collection
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+    // Enable Crashlytics collection
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
 
-  // Pass all uncaught "fatal" errors from the framework to Crashlytics
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-  };
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   // Setup FCM using the new service
   await NotificationService().initialize();
@@ -93,8 +100,18 @@ class _AppNavigatorState extends State<AppNavigator> {
   @override
   void initState() {
     super.initState();
+    _checkPermissions();
     _loadMockData();
     _checkLoginStatus();
+  }
+
+  Future<void> _checkPermissions() async {
+    if (!kIsWeb) {
+      await [
+        Permission.locationWhenInUse,
+        Permission.notification,
+      ].request();
+    }
   }
 
   Future<void> _checkLoginStatus() async {
@@ -130,6 +147,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         status: 'published',
         createdAt: '2026-01-10',
         attendeeCount: 156,
+        location: '23.54455-23.555566'
       ),
       Event(
         id: '2',
@@ -144,6 +162,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         status: 'ongoing',
         createdAt: '2026-01-15',
         attendeeCount: 48,
+          location: '23.54455-23.555566'
       ),
     ];
   }
@@ -204,6 +223,19 @@ class _AppNavigatorState extends State<AppNavigator> {
         profilePic: profilePic,
       );
       _currentPage = 'dashboard';
+    });
+    await _saveSession(_user!, _token);
+  }
+
+  Future<void> _handleProfileUpdated(String name, String profilePic) async {
+    setState(() {
+      _user = User(
+        id: _user!.id,
+        name: name,
+        email: _user!.email,
+        profilePic: profilePic,
+      );
+      _currentPage = 'profile';
     });
     await _saveSession(_user!, _token);
   }
@@ -327,6 +359,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   void _handleSaveAgenda(List<AgendaItem> items) {
     setState(() {
       _agendaItems = items;
+      _currentPage = 'agenda-view';
     });
   }
 
@@ -374,11 +407,13 @@ class _AppNavigatorState extends State<AppNavigator> {
           break;
         case 'ai-agenda':
         case 'manual-agenda':
+        case 'agenda-view':
         case 'attendees':
         case 'reminders':
         case 'feedback-collection':
         case 'feedback-reports':
         case 'profile':
+        case 'edit-profile':
           _currentPage = 'dashboard';
           break;
         default:
@@ -438,6 +473,18 @@ class _AppNavigatorState extends State<AppNavigator> {
           token: _token,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           onLogout: _handleLogout,
+          onEditProfile: (user) => setState(() {
+            _user = user;
+            _currentPage = 'edit-profile';
+          }),
+        );
+      
+      case 'edit-profile':
+        return EditProfileScreen(
+          user: _user!,
+          token: _token,
+          onProfileUpdated: _handleProfileUpdated,
+          onBack: () => setState(() => _currentPage = 'profile'),
         );
       
       case 'create-event':
@@ -464,6 +511,17 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
         );
+
+      case 'agenda-view':
+        return EventAgendaScreen(
+          event: _currentEvent!,
+          agendaItems: _agendaItems,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          onEditAgenda: () => setState(
+            () => _currentPage =
+                _currentEvent!.planningMode == 'automated' ? 'ai-agenda' : 'manual-agenda',
+          ),
+        );
       
       case 'manual-agenda':
         return ManualAgendaEditorScreen(
@@ -483,14 +541,14 @@ class _AppNavigatorState extends State<AppNavigator> {
           user: _user!,
         );
       
-      case 'reminders':
-        return ReminderSettingsScreen(
-          event: _currentEvent!,
-          reminders: _reminders,
-          onUpdateReminders: _handleUpdateReminders,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
-        );
+      // case 'reminders':
+      //   return ReminderSettingsScreen(
+      //     event: _currentEvent!,
+      //     reminders: _reminders,
+      //     onUpdateReminders: _handleUpdateReminders,
+      //     onBack: () => setState(() => _currentPage = 'event-details'),
+      //     user: _user!,
+      //   );
       
       case 'feedback-collection':
         return FeedbackCollectionScreen(
@@ -499,13 +557,13 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
       
-      case 'feedback-reports':
-        return FeedbackReportsScreen(
-          event: _currentEvent!,
-          feedbackResponses: _feedbackResponses,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
-        );
+      // case 'feedback-reports':
+      //   return FeedbackReportsScreen(
+      //     event: _currentEvent!,
+      //     feedbackResponses: _feedbackResponses,
+      //     onBack: () => setState(() => _currentPage = 'event-details'),
+      //     user: _user!,
+      //   );
       
       default:
         return LoginScreen(

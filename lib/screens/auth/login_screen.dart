@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../theme/app_theme.dart';
 import '../../project_helpers.dart';
@@ -62,10 +63,9 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
-      final fullMobileNo = '${_countryCodeController.text.trim()}${_mobileController.text.trim()}';
-      context.read<LoginBloc>().add(
-            LoginSubmitted(mobileNo: fullMobileNo),
-          );
+      final fullMobileNo =
+          '${_countryCodeController.text.trim()}${_mobileController.text.trim()}';
+      context.read<LoginBloc>().add(LoginSubmitted(mobileNo: fullMobileNo));
     }
   }
 
@@ -94,7 +94,8 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(state.response.message)),
                         );
-                        final fullMobileNo = '${_countryCodeController.text.trim()}${_mobileController.text.trim()}';
+                        final fullMobileNo =
+                            '${_countryCodeController.text.trim()}${_mobileController.text.trim()}';
                         widget.onLoginSuccess(
                           state.response.data?.userId ?? '',
                           fullMobileNo,
@@ -102,7 +103,10 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                         );
                       } else if (state is LoginFailure) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+                          SnackBar(
+                            content: Text(state.error),
+                            backgroundColor: Colors.red,
+                          ),
                         );
                       }
                     },
@@ -118,7 +122,10 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             height: 64,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                                colors: [
+                                  AppTheme.primaryIndigo,
+                                  AppTheme.primaryPurple,
+                                ],
                               ),
                               borderRadius: 16.radius,
                             ),
@@ -129,7 +136,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             ),
                           ).centerAlign,
                           24.height(context),
-                          
+
                           // Title
                           const Text(
                             'Welcome Back',
@@ -148,7 +155,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             ),
                           ).centerAlign,
                           32.height(context),
-                          
+
                           // Mobile Number field
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,10 +164,11 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                               SizedBox(
                                 width: 70,
                                 child: TextFormField(
+                                  readOnly: true,
                                   controller: _countryCodeController,
                                   keyboardType: TextInputType.phone,
                                   decoration: const InputDecoration(
-                                    labelText: 'Code',
+                                    // labelText: 'Code',
                                     hintText: '+91',
                                   ),
                                   validator: (value) {
@@ -174,24 +182,37 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                                   },
                                 ),
                               ),
-                              12.width,
+                              4.width,
                               // Mobile Number
                               Expanded(
                                 child: TextFormField(
                                   controller: _mobileController,
-                                  keyboardType: TextInputType.phone,
+                                  keyboardType: TextInputType.number,
+                                  // number keyboard
+                                  maxLength: 10,
+                                  // limit to 10 digits
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    // allow digits only
+                                  ],
                                   decoration: const InputDecoration(
                                     labelText: 'Mobile Number',
-                                    prefixIcon: Icon(Icons.phone_android_outlined),
+                                    prefixIcon: Icon(
+                                      Icons.phone_android_outlined,
+                                      size: 18,
+                                    ),
                                     hintText: '9876543210',
+                                    counterText: '', // hides 0/10 counter
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter mobile number';
                                     }
-                                    if (value.length < 10) {
-                                      return 'Invalid number';
+                                    if (value.length != 10) {
+                                      return 'Mobile number must be 10 digits';
                                     }
+                                    // Indian mobile number starts with 6–9
+                                    return null;
                                     return null;
                                   },
                                 ),
@@ -199,46 +220,55 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             ],
                           ),
                           24.height(context),
-                          
+
                           // Login button
                           BlocBuilder<LoginBloc, LoginState>(
                             builder: (context, state) {
                               return ElevatedButton(
-                                onPressed: state is LoginLoading ? null : _handleLogin,
+                                onPressed: state is LoginLoading
+                                    ? null
+                                    : _handleLogin,
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                 ),
                                 child: state is LoginLoading
-                                    ? 20.box(const CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ))
+                                    ? 20.box(
+                                        const CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
                                     : const Text(
                                         'Send OTP',
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                               );
                             },
                           ),
                           16.height(context),
-                          
+
                           // Register link
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "Don't have an account? ",
-                                style: TextStyle(color: AppTheme.gray600),
-                              ),
-                              const Text(
-                                'Sign up',
-                                style: TextStyle(
-                                  color: AppTheme.primaryIndigo,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ).onClick(widget.onNavigateToRegister),
-                            ],
-                          ),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.center,
+                          //   children: [
+                          //     const Text(
+                          //       "Don't have an account? ",
+                          //       style: TextStyle(color: AppTheme.gray600),
+                          //     ),
+                          //     const Text(
+                          //       'Sign up',
+                          //       style: TextStyle(
+                          //         color: AppTheme.primaryIndigo,
+                          //         fontWeight: FontWeight.bold,
+                          //       ),
+                          //     ).onClick(widget.onNavigateToRegister),
+                          //   ],
+                          // ),
                         ],
                       ).paddingAll(context, 32),
                     ),

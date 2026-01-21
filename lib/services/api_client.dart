@@ -32,7 +32,35 @@ class ApiClient {
 
   Future<Response> post(String path, {dynamic data, Map<String, dynamic>? headers}) async {
     try {
-      final response = await _dio.post(path, data: data, options: Options(headers: headers));
+      // If data is FormData, remove Content-Type header to let Dio set it automatically
+      Map<String, dynamic>? finalHeaders = headers;
+      if (data is FormData) {
+        finalHeaders = {...?headers};
+        // Don't set Content-Type for FormData - Dio will set multipart/form-data with boundary
+        finalHeaders.remove('Content-Type');
+      }
+      
+      final response = await _dio.post(
+        path, 
+        data: data, 
+        options: Options(
+          headers: finalHeaders,
+          contentType: data is FormData ? null : Headers.jsonContentType,
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? headers}) async {
+    try {
+      final response = await _dio.put(
+        path, 
+        data: data, 
+        options: Options(headers: headers),
+      );
       return response;
     } on DioException catch (e) {
       throw _handleError(e);

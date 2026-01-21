@@ -147,8 +147,8 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                           onCompleted: _verifyOtp,
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           defaultPinTheme: PinTheme(
-                            width: (context.width - 160) / 6,
-                            height: (context.width - 160) / 6,
+                            width: 50,
+                            height: 50,
                             textStyle: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -160,8 +160,8 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                             ),
                           ),
                           focusedPinTheme: PinTheme(
-                            width: (context.width - 160) / 6,
-                            height: (context.width - 160) / 6,
+                            width: 50,
+                            height: 50,
                             textStyle: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -173,8 +173,8 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                             ),
                           ),
                           submittedPinTheme: PinTheme(
-                            width: (context.width - 160) / 6,
-                            height: (context.width - 160) / 6,
+                            width: 50,
+                            height: 50,
                             decoration: BoxDecoration(
                               borderRadius: 8.radius,
                               color: AppTheme.primaryIndigo.withOpacity(0.05),

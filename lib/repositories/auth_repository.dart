@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../models/auth_models.dart';
 import '../services/api_client.dart';
@@ -17,18 +19,30 @@ class AuthRepository {
     return VerifyOtpResponse.fromJson(response.data);
   }
 
-  Future<FileUploadResponse> uploadFile(String filePath) async {
-    String fileName = filePath.split('/').last;
-    FormData formData = FormData.fromMap({
-      "files": await MultipartFile.fromFile(filePath, filename: fileName),
-    });
+  Future<FileUploadResponse> uploadFile(XFile file, String token) async {
+    FormData formData;
     
-    final response = await _apiClient.post('/api/fileUpload', data: formData);
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      formData = FormData.fromMap({
+        "files": MultipartFile.fromBytes(bytes, filename: file.name),
+      });
+    } else {
+      formData = FormData.fromMap({
+        "files": await MultipartFile.fromFile(file.path, filename: file.name),
+      });
+    }
+    
+    final response = await _apiClient.post(
+      '/api/fileUpload', 
+      data: formData,
+      headers: {'Authorization': 'Bearer $token'},
+    );
     return FileUploadResponse.fromJson(response.data);
   }
 
   Future<UpdateProfileResponse> updateProfile(String id, String name, String profilePic, String token) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.put(
       '/api/user/profile/$id',
       data: {
         "name": name,

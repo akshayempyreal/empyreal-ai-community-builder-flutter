@@ -10,28 +10,43 @@ import '../../blocs/complete_profile/complete_profile_event.dart';
 import '../../blocs/complete_profile/complete_profile_state.dart';
 import '../../repositories/auth_repository.dart';
 import '../../services/api_client.dart';
+import '../../models/user.dart';
 
-class CompleteProfileScreen extends StatefulWidget {
-  final String userId;
+class EditProfileScreen extends StatefulWidget {
+  final User user;
   final String token;
-  final Function(String name, String profilePic) onProfileCompleted;
+  final Function(String name, String profilePic) onProfileUpdated;
+  final VoidCallback onBack;
 
-  const CompleteProfileScreen({
+  const EditProfileScreen({
     super.key,
-    required this.userId,
+    required this.user,
     required this.token,
-    required this.onProfileCompleted,
+    required this.onProfileUpdated,
+    required this.onBack,
   });
 
   @override
-  State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
-  final _nameController = TextEditingController();
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  late final TextEditingController _nameController;
   final _formKey = GlobalKey<FormState>();
   XFile? _imageFile;
   final _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.user.name);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -68,9 +83,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     child: BlocConsumer<CompleteProfileBloc, CompleteProfileState>(
                       listener: (context, state) {
                         if (state is CompleteProfileSuccess) {
-                          widget.onProfileCompleted(
+                          widget.onProfileUpdated(
                             state.response.data?.name ?? _nameController.text,
-                            state.response.data?.profilePic ?? "",
+                            state.response.data?.profilePic ?? widget.user.profilePic ?? "",
                           );
                         } else if (state is CompleteProfileFailure) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -84,13 +99,23 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
-                                'Complete Your Profile',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.gray900,
-                                ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back),
+                                    onPressed: widget.onBack,
+                                  ),
+                                  const Expanded(
+                                    child: Text(
+                                      'Edit Profile',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.gray900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               24.height(context),
                               
@@ -113,9 +138,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                                     : FileImage(File(_imageFile!.path)),
                                                 fit: BoxFit.cover,
                                               )
-                                            : null,
+                                            : (widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty)
+                                                ? DecorationImage(
+                                                    image: NetworkImage(widget.user.profilePic!.fixImageUrl),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
                                       ),
-                                      child: _imageFile == null
+                                      child: (_imageFile == null && (widget.user.profilePic == null || widget.user.profilePic!.isEmpty))
                                           ? const Icon(Icons.person, size: 60, color: AppTheme.gray400)
                                           : null,
                                     ),
@@ -153,7 +183,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               ),
                               32.height(context),
                               
-                              // Save Button
+                              // Update Button
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -163,7 +193,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                           if (_formKey.currentState!.validate()) {
                                             context.read<CompleteProfileBloc>().add(
                                                   ProfileSubmitted(
-                                                    userId: widget.userId,
+                                                    userId: widget.user.id,
                                                     name: _nameController.text,
                                                     imageFile: _imageFile,
                                                     token: widget.token,
@@ -177,7 +207,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                   ),
                                   child: state is CompleteProfileLoading
                                       ? const CircularProgressIndicator(color: Colors.white)
-                                      : const Text('Save & Continue'),
+                                      : const Text('Update Profile'),
                                 ),
                               ),
                             ],
