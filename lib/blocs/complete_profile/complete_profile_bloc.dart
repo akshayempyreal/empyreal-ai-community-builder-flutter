@@ -20,7 +20,7 @@ class CompleteProfileBloc extends Bloc<CompleteProfileEvent, CompleteProfileStat
       
       // 1. Upload file if path exists
       if (event.filePath != null && event.filePath!.isNotEmpty) {
-        final uploadResponse = await _authRepository.uploadFile(event.filePath!);
+        final uploadResponse = await _authRepository.uploadFile(event.filePath!, event.token);
         if (uploadResponse.status && uploadResponse.data != null && uploadResponse.data!.isNotEmpty) {
           profilePicUrl = uploadResponse.data!.first.url;
         } else {

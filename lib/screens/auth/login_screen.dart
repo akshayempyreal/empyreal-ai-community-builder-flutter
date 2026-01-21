@@ -157,10 +157,11 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                               SizedBox(
                                 width: 70,
                                 child: TextFormField(
+                                  readOnly: true,
                                   controller: _countryCodeController,
                                   keyboardType: TextInputType.phone,
                                   decoration: const InputDecoration(
-                                    labelText: 'Code',
+                                    // labelText: 'Code',
                                     hintText: '+91',
                                   ),
                                   validator: (value) {
@@ -174,7 +175,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                                   },
                                 ),
                               ),
-                              12.width,
+                              4.width,
                               // Mobile Number
                               Expanded(
                                 child: TextFormField(
@@ -182,7 +183,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                                   keyboardType: TextInputType.phone,
                                   decoration: const InputDecoration(
                                     labelText: 'Mobile Number',
-                                    prefixIcon: Icon(Icons.phone_android_outlined),
+                                    prefixIcon: Icon(Icons.phone_android_outlined,size: 18,),
                                     hintText: '9876543210',
                                   ),
                                   validator: (value) {
@@ -223,22 +224,22 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                           16.height(context),
                           
                           // Register link
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "Don't have an account? ",
-                                style: TextStyle(color: AppTheme.gray600),
-                              ),
-                              const Text(
-                                'Sign up',
-                                style: TextStyle(
-                                  color: AppTheme.primaryIndigo,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ).onClick(widget.onNavigateToRegister),
-                            ],
-                          ),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.center,
+                          //   children: [
+                          //     const Text(
+                          //       "Don't have an account? ",
+                          //       style: TextStyle(color: AppTheme.gray600),
+                          //     ),
+                          //     const Text(
+                          //       'Sign up',
+                          //       style: TextStyle(
+                          //         color: AppTheme.primaryIndigo,
+                          //         fontWeight: FontWeight.bold,
+                          //       ),
+                          //     ).onClick(widget.onNavigateToRegister),
+                          //   ],
+                          // ),
                         ],
                       ).paddingAll(context, 32),
                     ),

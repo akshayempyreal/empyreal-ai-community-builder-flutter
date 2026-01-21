@@ -134,8 +134,8 @@ class _ProfileScreenContent extends StatelessWidget {
                               child: Column(
                                 children: [
                                   _buildInfoRow(context, Icons.phone_android_outlined, 'Mobile', user.mobileNo),
-                                  const Divider(),
-                                  _buildInfoRow(context, Icons.devices_outlined, 'Device', user.deviceType),
+                                  // const Divider(),
+                                  // _buildInfoRow(context, Icons.devices_outlined, 'Device', user.deviceType),
                                   const Divider(),
                                   _buildInfoRow(context, Icons.calendar_today_outlined, 'Joined', 
                                     user.createdAt?.substring(0, 10) ?? 'N/A'),

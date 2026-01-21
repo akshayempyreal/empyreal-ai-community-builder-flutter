@@ -17,18 +17,22 @@ class AuthRepository {
     return VerifyOtpResponse.fromJson(response.data);
   }
 
-  Future<FileUploadResponse> uploadFile(String filePath) async {
+  Future<FileUploadResponse> uploadFile(String filePath, String token) async {
     String fileName = filePath.split('/').last;
     FormData formData = FormData.fromMap({
       "files": await MultipartFile.fromFile(filePath, filename: fileName),
     });
     
-    final response = await _apiClient.post('/api/fileUpload', data: formData);
+    final response = await _apiClient.post(
+      '/api/fileUpload', 
+      data: formData,
+      headers: {'Authorization': 'Bearer $token'},
+    );
     return FileUploadResponse.fromJson(response.data);
   }
 
   Future<UpdateProfileResponse> updateProfile(String id, String name, String profilePic, String token) async {
-    final response = await _apiClient.post(
+    final response = await _apiClient.put(
       '/api/user/profile/$id',
       data: {
         "name": name,
