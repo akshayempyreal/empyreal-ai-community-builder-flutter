@@ -13,6 +13,7 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/events/create_event_screen.dart';
 import 'screens/events/event_details_screen.dart';
 import 'screens/events/ai_agenda_builder_screen.dart';
+import 'screens/events/event_agenda_screen.dart';
 import 'screens/events/manual_agenda_editor_screen.dart';
 import 'screens/events/attendee_management_screen.dart';
 import 'screens/events/reminder_settings_screen.dart';
@@ -211,6 +212,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   void _handleSaveAgenda(List<AgendaItem> items) {
     setState(() {
       _agendaItems = items;
+      _currentPage = 'agenda-view';
     });
   }
 
@@ -257,6 +259,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           break;
         case 'ai-agenda':
         case 'manual-agenda':
+        case 'agenda-view':
         case 'attendees':
         case 'reminders':
         case 'feedback-collection':
@@ -322,6 +325,17 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
+        );
+
+      case 'agenda-view':
+        return EventAgendaScreen(
+          event: _currentEvent!,
+          agendaItems: _agendaItems,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          onEditAgenda: () => setState(
+            () => _currentPage =
+                _currentEvent!.planningMode == 'automated' ? 'ai-agenda' : 'manual-agenda',
+          ),
         );
       
       case 'manual-agenda':
