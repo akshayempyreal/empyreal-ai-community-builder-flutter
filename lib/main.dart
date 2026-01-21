@@ -1,4 +1,23 @@
 import 'package:flutter/material.dart';
+import 'theme/app_theme.dart';
+import 'models/user.dart';
+import 'models/event.dart';
+import 'models/agenda_item.dart';
+import 'models/attendee.dart';
+import 'models/reminder.dart';
+import 'models/feedback_response.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/auth/forgot_password_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/events/create_event_screen.dart';
+import 'screens/events/event_details_screen.dart';
+import 'screens/events/ai_agenda_builder_screen.dart';
+import 'screens/events/manual_agenda_editor_screen.dart';
+import 'screens/events/attendee_management_screen.dart';
+import 'screens/events/reminder_settings_screen.dart';
+import 'screens/events/feedback_collection_screen.dart';
+import 'screens/events/feedback_reports_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,116 +26,352 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'AI Event Builder',
+      theme: AppTheme.lightTheme,
+      home: const AppNavigator(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class AppNavigator extends StatefulWidget {
+  const AppNavigator({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AppNavigator> createState() => _AppNavigatorState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _AppNavigatorState extends State<AppNavigator> {
+  String _currentPage = 'login';
+  User? _user;
+  List<Event> _events = [];
+  Event? _currentEvent;
+  List<AgendaItem> _agendaItems = [];
+  List<Attendee> _attendees = [];
+  List<Reminder> _reminders = [];
+  List<FeedbackResponse> _feedbackResponses = [];
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _loadMockData();
+  }
+
+  void _loadMockData() {
+    _events = [
+      Event(
+        id: '1',
+        name: 'Holi Community Event 2026',
+        description: 'A vibrant celebration of colors and culture',
+        type: 'cultural',
+        date: '2026-03-15',
+        duration: 7,
+        audienceSize: 200,
+        planningMode: 'automated',
+        status: 'published',
+        createdAt: '2026-01-10',
+        attendeeCount: 156,
+      ),
+      Event(
+        id: '2',
+        name: 'Tech Workshop Series',
+        description: 'Three-day workshop on AI and Machine Learning',
+        type: 'workshop',
+        date: '2026-02-20',
+        endDate: '2026-02-22',
+        duration: 6,
+        audienceSize: 50,
+        planningMode: 'manual',
+        status: 'ongoing',
+        createdAt: '2026-01-15',
+        attendeeCount: 48,
+      ),
+    ];
+  }
+
+  void _handleLogin(String email, String password) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _user = User(
+        id: '1',
+        name: 'John Organizer',
+        email: email,
+      );
+      _currentPage = 'dashboard';
+    });
+  }
+
+  void _handleRegister(String name, String email, String password) {
+    setState(() {
+      _user = User(
+        id: '1',
+        name: name,
+        email: email,
+      );
+      _currentPage = 'dashboard';
+    });
+  }
+
+  void _handleLogout() {
+    setState(() {
+      _user = null;
+      _currentPage = 'login';
+      _currentEvent = null;
+    });
+  }
+
+  void _handleCreateEvent(Event event) {
+    setState(() {
+      _events.add(event);
+      _currentEvent = event;
+      if (event.planningMode == 'automated') {
+        _currentPage = 'ai-agenda';
+      } else {
+        _currentPage = 'manual-agenda';
+      }
+    });
+  }
+
+  void _handleSelectEvent(Event event) {
+    setState(() {
+      _currentEvent = event;
+      _currentPage = 'event-details';
+      
+      // Load mock data for this event
+      if (event.id == '1') {
+        _agendaItems = [
+          AgendaItem(
+            id: 'a1',
+            title: 'Welcome Session',
+            startTime: '09:00',
+            endTime: '09:30',
+            type: 'ceremony',
+            description: 'Opening ceremony and welcome address',
+          ),
+          AgendaItem(
+            id: 'a2',
+            title: 'Ice-breaking Activities',
+            startTime: '09:30',
+            endTime: '10:30',
+            type: 'activity',
+          ),
+          AgendaItem(
+            id: 'a3',
+            title: 'Tea Break',
+            startTime: '10:30',
+            endTime: '10:45',
+            type: 'break',
+          ),
+        ];
+
+        _attendees = [
+          Attendee(
+            id: '1',
+            name: 'Alice Kumar',
+            email: 'alice@example.com',
+            phone: '+91-9876543210',
+            registeredAt: '2026-02-10',
+            status: 'confirmed',
+          ),
+          Attendee(
+            id: '2',
+            name: 'Bob Sharma',
+            email: 'bob@example.com',
+            registeredAt: '2026-02-12',
+            status: 'registered',
+          ),
+        ];
+
+        _reminders = [
+          Reminder(
+            id: 'r1',
+            type: 'event-start',
+            timing: '1 day before',
+            message: 'Event starts tomorrow!',
+            enabled: true,
+          ),
+        ];
+
+        _feedbackResponses = [
+          FeedbackResponse(
+            id: 'f1',
+            attendeeId: '1',
+            attendeeName: 'Alice Kumar',
+            rating: 5,
+            comments: 'Amazing event! Loved the cultural performances.',
+            submittedAt: '2026-03-16',
+          ),
+        ];
+      }
+    });
+  }
+
+  void _handleSaveAgenda(List<AgendaItem> items) {
+    setState(() {
+      _agendaItems = items;
+    });
+  }
+
+  void _handleAddAttendee(Attendee attendee) {
+    setState(() {
+      _attendees.add(attendee);
+    });
+  }
+
+  void _handleUpdateReminders(List<Reminder> reminders) {
+    setState(() {
+      _reminders = reminders;
+    });
+  }
+
+  void _handleSubmitFeedback(FeedbackResponse feedback) {
+    setState(() {
+      _feedbackResponses.add(feedback);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: _buildPage(),
     );
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_currentPage == 'login' || _currentPage == 'dashboard') {
+      return true;
+    }
+
+    setState(() {
+      switch (_currentPage) {
+        case 'register':
+        case 'forgot-password':
+          _currentPage = 'login';
+          break;
+        case 'create-event':
+        case 'event-details':
+          _currentPage = 'dashboard';
+          break;
+        case 'ai-agenda':
+        case 'manual-agenda':
+        case 'attendees':
+        case 'reminders':
+        case 'feedback-collection':
+        case 'feedback-reports':
+          _currentPage = 'event-details';
+          break;
+        default:
+          _currentPage = 'dashboard';
+      }
+    });
+    return false;
+  }
+
+  Widget _buildPage() {
+    switch (_currentPage) {
+      case 'login':
+        return LoginScreen(
+          onLogin: _handleLogin,
+          onNavigateToRegister: () => setState(() => _currentPage = 'register'),
+          onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
+        );
+      
+      case 'register':
+        return RegisterScreen(
+          onRegister: _handleRegister,
+          onNavigateToLogin: () => setState(() => _currentPage = 'login'),
+        );
+      
+      case 'forgot-password':
+        return ForgotPasswordScreen(
+          onNavigateToLogin: () => setState(() => _currentPage = 'login'),
+        );
+      
+      case 'dashboard':
+        return DashboardScreen(
+          user: _user!,
+          events: _events,
+          onCreateEvent: () => setState(() => _currentPage = 'create-event'),
+          onSelectEvent: _handleSelectEvent,
+          onLogout: _handleLogout,
+        );
+      
+      case 'create-event':
+        return CreateEventScreen(
+          onCreateEvent: _handleCreateEvent,
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          user: _user!,
+        );
+      
+      case 'event-details':
+        return EventDetailsScreen(
+          event: _currentEvent!,
+          agendaItems: _agendaItems,
+          attendees: _attendees,
+          onNavigate: (page) => setState(() => _currentPage = page),
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          user: _user!,
+        );
+      
+      case 'ai-agenda':
+        return AIAgendaBuilderScreen(
+          event: _currentEvent!,
+          onSaveAgenda: _handleSaveAgenda,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+        );
+      
+      case 'manual-agenda':
+        return ManualAgendaEditorScreen(
+          event: _currentEvent!,
+          existingAgenda: _agendaItems,
+          onSaveAgenda: _handleSaveAgenda,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+        );
+      
+      case 'attendees':
+        return AttendeeManagementScreen(
+          event: _currentEvent!,
+          attendees: _attendees,
+          onAddAttendee: _handleAddAttendee,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+        );
+      
+      case 'reminders':
+        return ReminderSettingsScreen(
+          event: _currentEvent!,
+          reminders: _reminders,
+          onUpdateReminders: _handleUpdateReminders,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+        );
+      
+      case 'feedback-collection':
+        return FeedbackCollectionScreen(
+          event: _currentEvent!,
+          onSubmitFeedback: _handleSubmitFeedback,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+        );
+      
+      case 'feedback-reports':
+        return FeedbackReportsScreen(
+          event: _currentEvent!,
+          feedbackResponses: _feedbackResponses,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+        );
+      
+      default:
+        return LoginScreen(
+          onLogin: _handleLogin,
+          onNavigateToRegister: () => setState(() => _currentPage = 'register'),
+          onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
+        );
+    }
   }
 }
