@@ -1,3 +1,4 @@
+import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/event.dart';
@@ -11,6 +12,7 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onCreateEvent;
   final Function(Event) onSelectEvent;
   final VoidCallback onLogout;
+  final VoidCallback onNavigateToProfile;
 
   const DashboardScreen({
     super.key,
@@ -19,6 +21,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onCreateEvent,
     required this.onSelectEvent,
     required this.onLogout,
+    required this.onNavigateToProfile,
   });
 
   @override
@@ -73,26 +76,26 @@ class DashboardScreen extends StatelessWidget {
             child: PopupMenuButton(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Check screen width from MediaQuery since constraints here are from the AppBar action slot
                   final isSmall = MediaQuery.of(context).size.width < 600;
-                  if (isSmall) {
-                    return CircleAvatar(
-                      backgroundColor: AppTheme.indigo100,
-                      child: Text(
-                        user.name[0].toUpperCase(),
-                        style: const TextStyle(color: AppTheme.primaryIndigo),
-                      ),
-                    );
-                  }
+                  
+                  Widget avatar = CircleAvatar(
+                    backgroundColor: AppTheme.indigo100,
+                    backgroundImage: user.profilePic != null && user.profilePic!.isNotEmpty
+                        ? NetworkImage(user.profilePic!.fixImageUrl)
+                        : null,
+                    child: user.profilePic == null || user.profilePic!.isEmpty
+                        ? Text(
+                            user.name.firstChar.upper,
+                            style: const TextStyle(color: AppTheme.primaryIndigo),
+                          )
+                        : null,
+                  );
+
+                  if (isSmall) return avatar;
+
                   return Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: AppTheme.indigo100,
-                        child: Text(
-                          user.name[0].toUpperCase(),
-                          style: const TextStyle(color: AppTheme.primaryIndigo),
-                        ),
-                      ),
+                      avatar,
                       const SizedBox(width: 8),
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -102,10 +105,6 @@ class DashboardScreen extends StatelessWidget {
                             user.name,
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
-                          Text(
-                            user.email,
-                            style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
-                          ),
                         ],
                       ),
                     ],
@@ -114,10 +113,17 @@ class DashboardScreen extends StatelessWidget {
               ),
               itemBuilder: (context) => [
                 PopupMenuItem(
-                  child: ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Logout'),
-                    onTap: onLogout,
+                  onTap: onNavigateToProfile,
+                  child: const ListTile(
+                    leading: Icon(Icons.person_outline),
+                    title: Text('Profile'),
+                  ),
+                ),
+                PopupMenuItem(
+                  onTap: onLogout,
+                  child: const ListTile(
+                    leading: Icon(Icons.logout),
+                    title: Text('Logout'),
                   ),
                 ),
               ],
