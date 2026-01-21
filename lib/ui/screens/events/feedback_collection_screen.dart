@@ -14,27 +14,16 @@ class FeedbackCollectionScreen extends StatelessWidget {
       attendeeId: '1',
       attendeeName: 'Alex Rivera',
       rating: 5,
-      comments:
-          'The prompt engineering workshop was a game changer for my workflow. The AI matching was surprisingly accurate.',
+      comments: 'The prompt engineering workshop was a game changer for my workflow.',
       submittedAt: '2h ago',
     ),
-     FeedbackResponse(
+    FeedbackResponse(
       id: 'f2',
       attendeeId: '2',
       attendeeName: 'Sarah Chen',
       rating: 4,
-      comments:
-          'Great event overall! Only feedback is that I wish the keynote was a bit longer to allow for more audience questions.',
+      comments: 'Great event overall! The networking was excellent.',
       submittedAt: '5h ago',
-    ),
-     FeedbackResponse(
-      id: 'f3',
-      attendeeId: '3',
-      attendeeName: 'Marcus Thompson',
-      rating: 4,
-      comments:
-          'Solid technical depth. Would love to see more hands-on labs in the next iteration.',
-      submittedAt: 'Yesterday',
     ),
   ];
 
@@ -47,399 +36,125 @@ class FeedbackCollectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 700;
-    final horizontalPadding = isMobile ? 16.0 : 32.0;
-    final maxWidth = isMobile ? 520.0 : 960.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          icon: const Icon(Icons.arrow_back),
           onPressed: onBack,
         ),
-        title: Row(
+        title: const Text('Feedback Hub'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.indigo100,
-              child: const Icon(Icons.person, color: AppColors.primaryIndigo),
+            _buildStatBanner(context, isDark),
+            const SizedBox(height: 32),
+            Text(
+              'Recent Reviews',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Feedback Hub',
-                  style: TextStyle(
-                    color: AppColors.gray900,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  'Post-Event Insights',
-                  style: TextStyle(color: AppColors.gray500, fontSize: 12),
-                ),
-              ],
-            ),
+            const SizedBox(height: 16),
+            ..._mockFeedback.map((f) => _buildFeedbackCard(context, f, isDark)),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.ios_share),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                12,
-                horizontalPadding,
-                24,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildRatingCard(),
-                  const SizedBox(height: 16),
-                  _buildSentimentCard(),
-                  const SizedBox(height: 12),
-                  _buildImprovementsCard(),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Individual Feedback',
-                    style: TextStyle(
-                      color: AppColors.gray900,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._mockFeedback.map(_buildFeedbackTile),
-                  const SizedBox(height: 12),
-                  _buildViewAllButton(),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildCard({
-    required Widget child,
-    EdgeInsets padding = const EdgeInsets.all(16),
-  }) {
+  Widget _buildStatBanner(BuildContext context, bool isDark) {
     return Container(
-      width: double.infinity,
-      padding: padding,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gray200),
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
         ],
       ),
-      child: child,
-    );
-  }
-
-  Widget _buildRatingCard() {
-    return _buildCard(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          const Text(
-            'AVERAGE EVENT RATING',
-            style: TextStyle(
-              color: AppColors.gray500,
-              fontSize: 13,
-              letterSpacing: 1.1,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: const [
-              Text(
-                '4.8',
-                style: TextStyle(
-                  color: AppColors.gray900,
-                  fontSize: 44,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(width: 6),
-              Padding(
-                padding: EdgeInsets.only(bottom: 6),
-                child: Text(
-                  '/ 5',
-                  style: TextStyle(
-                    color: AppColors.gray500,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const _Stars(),
-          const SizedBox(height: 8),
-          const Text(
-            '↑ 12% from last event',
-            style: TextStyle(
-              color: AppColors.success,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          _StatItem(label: 'Avg Rating', value: '4.8', icon: Icons.star),
+          _StatItem(label: 'Responses', value: '24', icon: Icons.chat_bubble_outline),
         ],
       ),
     );
   }
 
-  Widget _buildSentimentCard() {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.auto_awesome, color: AppColors.info),
-              SizedBox(width: 8),
-              Text(
-                'Top Positive Sentiment',
-                style: TextStyle(
-                  color: AppColors.gray900,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.gray200),
-            ),
-            child: RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  color: AppColors.gray700,
-                  fontSize: 14,
-                  height: 1.6,
-                ),
-                children: [
-                  TextSpan(text: '"Attendees highly praised the '),
-                  TextSpan(
-                    text: 'interactive workshop sessions',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.gray900),
-                  ),
-                  TextSpan(text: ' and the '),
-                  TextSpan(
-                    text: 'AI networking algorithm',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.gray900),
-                  ),
-                  TextSpan(
-                      text:
-                          ', which resulted in 94% meaningful connection matches."'),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImprovementsCard() {
-    return _buildCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Key Areas for Improvement',
-            style: TextStyle(
-              color: AppColors.gray900,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 12),
-          _Bullet(text: 'Increase duration of Q&A sessions'),
-          SizedBox(height: 8),
-          _Bullet(text: 'Provide more vegan catering options'),
-          SizedBox(height: 8),
-          _Bullet(text: 'Better Wi-Fi signal in Breakout Room B'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedbackTile(FeedbackResponse feedback) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: _buildCard(
-        padding: const EdgeInsets.all(16),
+  Widget _buildFeedbackCard(BuildContext context, FeedbackResponse feedback, bool isDark) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.indigo100,
-                  child: Text(
-                    feedback.attendeeName.isNotEmpty
-                        ? feedback.attendeeName[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      color: AppColors.primaryIndigo,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: Text(feedback.attendeeName[0]),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        feedback.attendeeName,
-                        style: const TextStyle(
-                          color: AppColors.gray900,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        feedback.submittedAt,
-                        style: const TextStyle(
-                          color: AppColors.gray500,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text(feedback.attendeeName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(feedback.submittedAt, style: TextStyle(color: AppColors.slate500, fontSize: 12)),
                     ],
                   ),
                 ),
-                const _Stars(compact: true),
+                Row(
+                  children: List.generate(5, (index) => Icon(
+                    Icons.star,
+                    size: 16,
+                    color: index < feedback.rating ? AppColors.warning : AppColors.slate300,
+                  )),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
-              '"${feedback.comments}"',
-              style: const TextStyle(
-                color: AppColors.gray700,
-                fontSize: 14,
-                height: 1.6,
-              ),
+              feedback.comments,
+              style: const TextStyle(height: 1.5),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildViewAllButton() {
-    return Center(
-      child: TextButton(
-        onPressed: () {},
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.primaryIndigo,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: AppColors.gray200),
-          ),
-        ),
-        child: const Text(
-          'View All Feedback',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-class _Bullet extends StatelessWidget {
-  final String text;
-  const _Bullet({required this.text});
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatItem({required this.label, required this.value, required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: Icon(Icons.circle, size: 8, color: AppColors.info),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: AppColors.gray700,
-              fontSize: 14,
-              height: 1.5,
-            ),
-          ),
-        ),
+        Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w400)),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
       ],
-    );
-  }
-}
-
-class _Stars extends StatelessWidget {
-  final bool compact;
-  const _Stars({this.compact = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final size = compact ? 16.0 : 22.0;
-    return Row(
-      mainAxisAlignment: compact ? MainAxisAlignment.end : MainAxisAlignment.center,
-      children: List.generate(
-        5,
-        (_) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Icon(
-            Icons.star,
-            size: size,
-            color: const Color(0xFFF59E0B),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -368,25 +368,31 @@ class _CreateEventViewState extends State<_CreateEventView> {
                 ),
                 const SizedBox(height: 32),
                 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    SecondaryButton(
-                      text: 'Cancel',
-                      onPressed: widget.onBack,
-                      width: 120,
-                    ),
-                    const SizedBox(width: 12),
-                    PrimaryButton(
-                      text: 'Next Step',
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          context.read<CreateEventBloc>().add(const ChangeStep(1));
-                        }
-                      },
-                      width: 140,
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isSmall = constraints.maxWidth < 300;
+                    return Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SecondaryButton(
+                          text: 'Cancel',
+                          onPressed: widget.onBack,
+                          width: isSmall ? constraints.maxWidth : 120,
+                        ),
+                        PrimaryButton(
+                          text: 'Next Step',
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              context.read<CreateEventBloc>().add(const ChangeStep(1));
+                            }
+                          },
+                          width: isSmall ? constraints.maxWidth : 140,
+                        ),
+                      ],
+                    );
+                  }
                 ),
               ],
             ),

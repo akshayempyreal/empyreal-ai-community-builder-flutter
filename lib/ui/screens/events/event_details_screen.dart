@@ -158,7 +158,7 @@ class EventDetailsScreen extends StatelessWidget {
         crossAxisCount: isMobile ? 1 : 3,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: isMobile ? 2.5 : 1,
+        childAspectRatio: isMobile ? 2.0 : 1.1,
         children: [
           _ActionCard(
             title: 'Agenda',
@@ -224,21 +224,32 @@ class _ActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: color, size: 24),
               ),
-              const SizedBox(height: 16),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(subtitle, style: const TextStyle(color: AppColors.slate500, fontSize: 12)),
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title, 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              Text(
+                subtitle, 
+                style: const TextStyle(color: AppColors.slate500, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
