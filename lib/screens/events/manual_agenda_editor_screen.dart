@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../models/agenda_item.dart';
@@ -34,6 +36,15 @@ class ManualAgendaEditorScreen extends StatefulWidget {
 
 class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
   int _selectedDayIndex = 0;
+  List<DaySession> _localSessions = [];
+
+  void _initializeLocalSessions(SessionData data) {
+    if (_localSessions.isEmpty) {
+      setState(() {
+        _localSessions = data.sessions;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +52,9 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
       create: (context) => AgendaBloc(EventRepository(ApiClient())),
       child: BlocConsumer<AgendaBloc, AgendaState>(
         listener: (context, state) {
-          if (state is AgendaFailure) {
+          if (state is AgendaSuccess) {
+            _initializeLocalSessions(state.response.data!);
+          } else if (state is AgendaFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.error), backgroundColor: Colors.red),
             );
@@ -55,16 +68,24 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
-              title: Text(state is AgendaSuccess ? 'Event Agenda' : 'Event Created Successfully'),
+              title: Text(_localSessions.isNotEmpty ? 'Edit Event Agenda' : 'Event Created Successfully'),
               backgroundColor: Colors.white,
               foregroundColor: AppTheme.gray900,
               elevation: 0,
             ),
             body: state is AgendaLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state is AgendaSuccess
-                    ? _buildSessionsView(state.response.data!)
+                ? const AgendaLoadingView()
+                : _localSessions.isNotEmpty
+                    ? _buildSessionsView()
                     : _buildInitialEventDetails(context),
+            floatingActionButton: _localSessions.isNotEmpty
+                ? FloatingActionButton.extended(
+                    onPressed: () => _showSessionDialog(context, dayIndex: _selectedDayIndex),
+                    label: const Text('Add Session'),
+                    icon: const Icon(Icons.add),
+                    backgroundColor: AppTheme.primaryIndigo,
+                  )
+                : null,
           );
         },
       ),
@@ -136,8 +157,8 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     );
   }
 
-  Widget _buildSessionsView(SessionData data) {
-    final currentDay = data.sessions[_selectedDayIndex];
+  Widget _buildSessionsView() {
+    final currentDay = _localSessions[_selectedDayIndex];
 
     return Column(
       children: [
@@ -149,7 +170,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: data.sessions.length,
+            itemCount: _localSessions.length,
             itemBuilder: (context, index) {
               final isSelected = _selectedDayIndex == index;
               return GestureDetector(
@@ -195,7 +216,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
             itemCount: currentDay.sessions.length,
             itemBuilder: (context, index) {
               final session = currentDay.sessions[index];
-              return _buildSessionCard(session);
+              return _buildSessionCard(session, index);
             },
           ),
         ),
@@ -206,12 +227,13 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => widget.onSaveAgenda([]),
+              onPressed: _handleSaveAndGoToDashboard,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: AppTheme.primaryIndigo,
               ),
-              child: const Text('Go to Dashboard'),
+              child: const Text('Save & Go to Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
         ),
@@ -219,7 +241,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     );
   }
 
-  Widget _buildSessionCard(SessionItem session) {
+  Widget _buildSessionCard(SessionItem session, int index) {
     final startTime = _formatTime(session.startDateTime);
     final endTime = _formatTime(session.endDateTime);
 
@@ -252,15 +274,15 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
               Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primaryIndigo,
+                decoration: BoxDecoration(
+                  color: _getSessionColor(session.sessionType),
                   shape: BoxShape.circle,
                 ),
               ),
               Container(
                 width: 2,
                 height: 100, // Approximate height
-                color: AppTheme.indigo100,
+                color: _getSessionColor(session.sessionType).withOpacity(0.2),
               ),
             ],
           ),
@@ -275,23 +297,60 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      session.sessionTitle,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            session.sessionTitle,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showSessionDialog(context, dayIndex: _selectedDayIndex, sessionIndex: index, session: session);
+                            } else if (value == 'delete') {
+                              _deleteSession(_selectedDayIndex, index);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
+                            const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                          ],
+                          icon: const Icon(Icons.more_vert, size: 20, color: AppTheme.gray400),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       session.sessionDescription,
                       style: const TextStyle(color: AppTheme.gray600, fontSize: 14),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.access_time, size: 14, color: AppTheme.primaryIndigo),
-                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getSessionColor(session.sessionType).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, size: 12, color: _getSessionColor(session.sessionType)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${session.durationMinutes} min',
+                                style: TextStyle(fontSize: 10, color: _getSessionColor(session.sessionType), fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          '${session.durationMinutes} min',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.primaryIndigo),
+                          session.sessionType.toUpperCase(),
+                          style: TextStyle(fontSize: 10, color: AppTheme.gray500, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                         ),
                       ],
                     ),
@@ -303,6 +362,237 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
         ],
       ),
     );
+  }
+
+  Color _getSessionColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'ceremony': return Colors.amber;
+      case 'break': return Colors.teal;
+      case 'activity': return AppTheme.primaryPurple;
+      case 'session':
+      default: return AppTheme.primaryIndigo;
+    }
+  }
+
+  void _showSessionDialog(BuildContext context, {required int dayIndex, int? sessionIndex, SessionItem? session}) {
+    final isEditing = sessionIndex != null;
+    final titleController = TextEditingController(text: session?.sessionTitle ?? '');
+    final descController = TextEditingController(text: session?.sessionDescription ?? '');
+    final durationController = TextEditingController(text: session?.durationMinutes.toString() ?? '30');
+    String selectedType = session?.sessionType ?? 'session';
+    
+    DateTime selectedStartTime;
+    if (session != null) {
+      selectedStartTime = DateTime.parse(session.startDateTime).toLocal();
+    } else {
+      // For new sessions, default to the start of the day or after the last session
+      if (_localSessions[dayIndex].sessions.isNotEmpty) {
+        selectedStartTime = DateTime.parse(_localSessions[dayIndex].sessions.last.endDateTime).toLocal();
+      } else {
+        selectedStartTime = DateTime.parse(_localSessions[dayIndex].dayStartDateTime).toLocal();
+      }
+    }
+
+    String? clashError;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(isEditing ? 'Edit Session' : 'Add New Session'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (clashError != null)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            clashError!,
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title *'),
+                ),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'session', child: Text('Regular Session')),
+                    DropdownMenuItem(value: 'ceremony', child: Text('Ceremony')),
+                    DropdownMenuItem(value: 'activity', child: Text('Activity')),
+                    DropdownMenuItem(value: 'break', child: Text('Break')),
+                  ],
+                  onChanged: (val) => setDialogState(() => selectedType = val!),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: const Text('Start Time'),
+                  subtitle: Text(DateFormat('hh:mm a').format(selectedStartTime)),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(selectedStartTime),
+                    );
+                    if (time != null) {
+                      setDialogState(() {
+                        selectedStartTime = DateTime(
+                          selectedStartTime.year,
+                          selectedStartTime.month,
+                          selectedStartTime.day,
+                          time.hour,
+                          time.minute,
+                        );
+                        clashError = null; // Clear error when time changes
+                      });
+                    }
+                  },
+                ),
+                TextField(
+                  controller: durationController,
+                  decoration: const InputDecoration(labelText: 'Duration (minutes) *'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setDialogState(() => clashError = null),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isEmpty) return;
+                
+                final duration = int.tryParse(durationController.text) ?? 30;
+                final newStart = selectedStartTime;
+                final newEnd = selectedStartTime.add(Duration(minutes: duration));
+
+                // Validation: Check for time clashes
+                String? error;
+                final daySessions = _localSessions[dayIndex].sessions;
+                
+                // Compare everything in Local time to avoid timezone jumps
+                final newStartLocal = newStart.toLocal();
+                final newEndLocal = newEnd.toLocal();
+
+                for (int i = 0; i < daySessions.length; i++) {
+                  if (isEditing && i == sessionIndex) continue;
+                  
+                  final otherStartLocal = DateTime.parse(daySessions[i].startDateTime).toLocal();
+                  final otherEndLocal = DateTime.parse(daySessions[i].endDateTime).toLocal();
+                  
+                  // Overlap condition: (StartA < EndB) and (EndA > StartB)
+                  // Use 1-minute buffer to allow back-to-back sessions (StartA == EndB is fine)
+                  if (newStartLocal.isBefore(otherEndLocal) && newEndLocal.isAfter(otherStartLocal)) {
+                    final otherStartTimeStr = DateFormat('hh:mm a').format(otherStartLocal);
+                    final otherEndTimeStr = DateFormat('hh:mm a').format(otherEndLocal);
+                    error = 'Clashes with "${daySessions[i].sessionTitle}" ($otherStartTimeStr - $otherEndTimeStr)';
+                    break;
+                  }
+                }
+
+                if (error != null) {
+                  setDialogState(() {
+                    clashError = error;
+                  });
+                  return;
+                }
+
+                // Important: Always save back in UTC to keep consistent with what API provides/expects
+                final newSession = SessionItem(
+                  sessionTitle: titleController.text,
+                  sessionDescription: descController.text,
+                  startDateTime: newStart.toUtc().toIso8601String(),
+                  endDateTime: newEnd.toUtc().toIso8601String(),
+                  durationMinutes: duration,
+                  sessionType: selectedType,
+                );
+
+                setState(() {
+                  final updatedDaySessions = List<SessionItem>.from(_localSessions[dayIndex].sessions);
+                  if (isEditing) {
+                    updatedDaySessions[sessionIndex] = newSession;
+                  } else {
+                    updatedDaySessions.add(newSession);
+                  }
+                  
+                  // Sort sessions by actual DateTime value, not string comparison
+                  updatedDaySessions.sort((a, b) {
+                    final aTime = DateTime.parse(a.startDateTime);
+                    final bTime = DateTime.parse(b.startDateTime);
+                    return aTime.compareTo(bTime);
+                  });
+                  
+                  _localSessions[dayIndex] = _localSessions[dayIndex].copyWith(sessions: updatedDaySessions);
+                });
+                
+                Navigator.pop(context);
+              },
+              child: Text(isEditing ? 'Save' : 'Add'),
+            ),
+
+          ],
+        ),
+      ),
+    );
+
+
+  }
+
+  void _deleteSession(int dayIndex, int sessionIndex) {
+    setState(() {
+      final daySessions = List<SessionItem>.from(_localSessions[dayIndex].sessions);
+      daySessions.removeAt(sessionIndex);
+      _localSessions[dayIndex] = _localSessions[dayIndex].copyWith(sessions: daySessions);
+    });
+  }
+
+  void _handleSaveAndGoToDashboard() {
+    final List<AgendaItem> items = [];
+    int counter = 1;
+    
+    for (var day in _localSessions) {
+      for (var session in day.sessions) {
+        final start = DateTime.parse(session.startDateTime).toLocal();
+        final end = DateTime.parse(session.endDateTime).toLocal();
+        
+        items.add(AgendaItem(
+          id: 'gen_$counter',
+          title: session.sessionTitle,
+          startTime: DateFormat('HH:mm').format(start),
+          endTime: DateFormat('HH:mm').format(end),
+          type: session.sessionType,
+          description: session.sessionDescription,
+        ));
+        counter++;
+      }
+    }
+    
+    widget.onSaveAgenda(items);
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -327,8 +617,8 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
 
   String _formatDate(String dateStr) {
     try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year}';
+      final date = DateTime.parse(dateStr).toLocal();
+      return DateFormat('dd/MM/yyyy').format(date);
     } catch (e) {
       return dateStr;
     }
@@ -336,13 +626,130 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
 
   String _formatTime(String dateTimeStr) {
     try {
-      final dateTime = DateTime.parse(dateTimeStr);
-      final hour = dateTime.hour > 12 ? dateTime.hour - 12 : (dateTime.hour == 0 ? 12 : dateTime.hour);
-      final minute = dateTime.minute.toString().padLeft(2, '0');
-      final period = dateTime.hour >= 12 ? 'PM' : 'AM';
-      return '$hour:$minute $period';
+      final dateTime = DateTime.parse(dateTimeStr).toLocal();
+      return DateFormat('hh:mm a').format(dateTime);
     } catch (e) {
       return dateTimeStr;
     }
+  }
+}
+
+class AgendaLoadingView extends StatefulWidget {
+  const AgendaLoadingView({super.key});
+
+  @override
+  State<AgendaLoadingView> createState() => _AgendaLoadingViewState();
+}
+
+class _AgendaLoadingViewState extends State<AgendaLoadingView> {
+  int _messageIndex = 0;
+  Timer? _timer;
+  final List<String> _messages = [
+    'Creating Agenda...',
+    'Managing Timing...',
+    'Arranging Sessions...',
+    'Adding Breaks...',
+    'Optimizing Schedule...',
+    'Finalizing Details...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _messageIndex = (_messageIndex + 1) % _messages.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryIndigo.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+            child: const CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
+            ),
+          ),
+          const SizedBox(height: 48),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 800),
+            switchInCurve: Curves.easeInOutBack,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.4),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              _messages[_messageIndex],
+              key: ValueKey<int>(_messageIndex),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryIndigo,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Our AI is architecting your perfect community event',
+            style: TextStyle(
+              fontSize: 15,
+              color: AppTheme.gray500,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 56),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 64),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: const LinearProgressIndicator(
+                backgroundColor: AppTheme.gray200,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
+                minHeight: 4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -39,6 +39,18 @@ class SessionData {
           [],
     );
   }
+
+  SessionData copyWith({
+    String? eventName,
+    int? totalDays,
+    List<DaySession>? sessions,
+  }) {
+    return SessionData(
+      eventName: eventName ?? this.eventName,
+      totalDays: totalDays ?? this.totalDays,
+      sessions: sessions ?? this.sessions,
+    );
+  }
 }
 
 class DaySession {
@@ -68,6 +80,22 @@ class DaySession {
           [],
     );
   }
+
+  DaySession copyWith({
+    int? day,
+    String? date,
+    String? dayStartDateTime,
+    String? dayEndDateTime,
+    List<SessionItem>? sessions,
+  }) {
+    return DaySession(
+      day: day ?? this.day,
+      date: date ?? this.date,
+      dayStartDateTime: dayStartDateTime ?? this.dayStartDateTime,
+      dayEndDateTime: dayEndDateTime ?? this.dayEndDateTime,
+      sessions: sessions ?? this.sessions,
+    );
+  }
 }
 
 class SessionItem {
@@ -76,6 +104,7 @@ class SessionItem {
   final String startDateTime;
   final String endDateTime;
   final int durationMinutes;
+  final String sessionType; // 'session', 'break', 'activity', 'ceremony'
 
   SessionItem({
     required this.sessionTitle,
@@ -83,6 +112,7 @@ class SessionItem {
     required this.startDateTime,
     required this.endDateTime,
     required this.durationMinutes,
+    this.sessionType = 'session',
   });
 
   factory SessionItem.fromJson(Map<String, dynamic> json) {
@@ -92,6 +122,25 @@ class SessionItem {
       startDateTime: json['startDateTime'] ?? '',
       endDateTime: json['endDateTime'] ?? '',
       durationMinutes: json['durationMinutes'] ?? 0,
+      sessionType: json['sessionType'] ?? 'session',
+    );
+  }
+
+  SessionItem copyWith({
+    String? sessionTitle,
+    String? sessionDescription,
+    String? startDateTime,
+    String? endDateTime,
+    int? durationMinutes,
+    String? sessionType,
+  }) {
+    return SessionItem(
+      sessionTitle: sessionTitle ?? this.sessionTitle,
+      sessionDescription: sessionDescription ?? this.sessionDescription,
+      startDateTime: startDateTime ?? this.startDateTime,
+      endDateTime: endDateTime ?? this.endDateTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      sessionType: sessionType ?? this.sessionType,
     );
   }
 }
