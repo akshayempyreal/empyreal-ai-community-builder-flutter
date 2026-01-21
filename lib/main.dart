@@ -276,13 +276,10 @@ class _AppNavigatorState extends State<AppNavigator> {
     setState(() {
       _events.add(event);
       _currentEvent = event;
-      if (event.planningMode == 'automated') {
-        _currentPage = 'ai-agenda';
-      } else {
-        _currentPage = 'manual-agenda';
-      }
+      _currentPage = 'manual-agenda';
     });
   }
+
 
   void _handleSelectEvent(Event event) {
     setState(() {
@@ -361,9 +358,10 @@ class _AppNavigatorState extends State<AppNavigator> {
   void _handleSaveAgenda(List<AgendaItem> items) {
     setState(() {
       _agendaItems = items;
-      _currentPage = 'agenda-view';
+      _currentPage = 'dashboard';
     });
   }
+
 
   void _handleAddAttendee(Attendee attendee) {
     setState(() {
@@ -494,6 +492,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onCreateEvent: _handleCreateEvent,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
+          token: _token,
         );
       
       case 'event-details':
@@ -532,6 +531,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
+          token: _token,
         );
       
       case 'attendees':
