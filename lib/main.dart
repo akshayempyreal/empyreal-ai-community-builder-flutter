@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'models/auth_models.dart';
 import 'theme/app_theme.dart';
 import 'models/user.dart';
 import 'models/event.dart';
@@ -10,8 +11,15 @@ import 'models/attendee.dart';
 import 'models/reminder.dart';
 import 'models/feedback_response.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/otp_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'repositories/auth_repository.dart';
+import 'services/api_client.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/events/create_event_screen.dart';
 import 'screens/events/event_details_screen.dart';
@@ -25,10 +33,10 @@ import 'screens/events/feedback_reports_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   // Enable Crashlytics collection
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
-  
+
   // Pass all uncaught "fatal" errors from the framework to Crashlytics
   FlutterError.onError = (errorDetails) {
     FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
@@ -66,6 +74,10 @@ class AppNavigator extends StatefulWidget {
 class _AppNavigatorState extends State<AppNavigator> {
   String _currentPage = 'login';
   User? _user;
+  String _tempMobileNo = '';
+  String _tempUserId = '';
+  String _token = '';
+  bool _isNewUser = false;
   List<Event> _events = [];
   Event? _currentEvent;
   List<AgendaItem> _agendaItems = [];
@@ -77,6 +89,26 @@ class _AppNavigatorState extends State<AppNavigator> {
   void initState() {
     super.initState();
     _loadMockData();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final userData = prefs.getString('user');
+
+      if (token != null && userData != null && token.isNotEmpty) {
+        final decodedUser = jsonDecode(userData);
+        setState(() {
+          _token = token;
+          _user = User.fromJson(decodedUser);
+          _currentPage = 'dashboard';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking login status: $e');
+    }
   }
 
   void _loadMockData() {
@@ -111,15 +143,64 @@ class _AppNavigatorState extends State<AppNavigator> {
     ];
   }
 
-  void _handleLogin(String email, String password) {
+  void _handleLoginSuccess(String userId, String mobileNo, bool isNewUser) {
+    setState(() {
+      _tempUserId = userId;
+      _tempMobileNo = mobileNo;
+      _isNewUser = isNewUser;
+      _currentPage = 'otp';
+    });
+  }
+
+  Future<void> _handleOtpVerified(UserModel user, String token) async {
+    setState(() {
+      _token = token;
+      if (_isNewUser) {
+        _currentPage = 'complete-profile';
+      } else {
+        _user = User(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          profilePic: user.profilePic,
+        );
+        _currentPage = 'dashboard';
+      }
+    });
+    if (!_isNewUser) {
+      await _saveSession(user, token);
+    }
+  }
+
+  Future<void> _saveSession(dynamic user, String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', token);
+
+    User sessionUser;
+    if (user is UserModel) {
+      sessionUser = User(
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profilePic: user.profilePic,
+      );
+    } else {
+      sessionUser = user as User;
+    }
+    await prefs.setString('user', jsonEncode(sessionUser.toJson()));
+  }
+
+  Future<void> _handleProfileCompleted(String name, String profilePic) async {
     setState(() {
       _user = User(
-        id: '1',
-        name: 'John Organizer',
-        email: email,
+        id: _tempUserId,
+        name: name,
+        email: null,
+        profilePic: profilePic,
       );
       _currentPage = 'dashboard';
     });
+    await _saveSession(_user!, _token);
   }
 
   void _handleRegister(String name, String email, String password) {
@@ -133,9 +214,20 @@ class _AppNavigatorState extends State<AppNavigator> {
     });
   }
 
-  void _handleLogout() {
+  void _handleLogout() async {
+    try {
+      if (_token.isNotEmpty) {
+        await AuthRepository(ApiClient()).logout(_token);
+      }
+    } catch (e) {
+      debugPrint('Logout API Error: $e');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
     setState(() {
       _user = null;
+      _token = '';
       _currentPage = 'login';
       _currentEvent = null;
     });
@@ -268,6 +360,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       switch (_currentPage) {
         case 'register':
         case 'forgot-password':
+        case 'otp':
           _currentPage = 'login';
           break;
         case 'create-event':
@@ -280,7 +373,8 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'reminders':
         case 'feedback-collection':
         case 'feedback-reports':
-          _currentPage = 'event-details';
+        case 'profile':
+          _currentPage = 'dashboard';
           break;
         default:
           _currentPage = 'dashboard';
@@ -293,11 +387,26 @@ class _AppNavigatorState extends State<AppNavigator> {
     switch (_currentPage) {
       case 'login':
         return LoginScreen(
-          onLogin: _handleLogin,
+          onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
         );
-      
+
+      case 'otp':
+        return OtpScreen(
+          userId: _tempUserId,
+          mobileNo: _tempMobileNo,
+          onOtpVerified: _handleOtpVerified,
+          onBack: () => setState(() => _currentPage = 'login'),
+        );
+
+      case 'complete-profile':
+        return CompleteProfileScreen(
+          userId: _tempUserId,
+          token: _token,
+          onProfileCompleted: _handleProfileCompleted,
+        );
+
       case 'register':
         return RegisterScreen(
           onRegister: _handleRegister,
@@ -315,6 +424,14 @@ class _AppNavigatorState extends State<AppNavigator> {
           events: _events,
           onCreateEvent: () => setState(() => _currentPage = 'create-event'),
           onSelectEvent: _handleSelectEvent,
+          onLogout: _handleLogout,
+          onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+        );
+
+      case 'profile':
+        return ProfileScreen(
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'dashboard'),
           onLogout: _handleLogout,
         );
       
@@ -387,7 +504,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       default:
         return LoginScreen(
-          onLogin: _handleLogin,
+          onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
         );
