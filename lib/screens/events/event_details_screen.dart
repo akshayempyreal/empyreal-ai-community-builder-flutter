@@ -567,7 +567,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Future<void> _openLocationInMaps(BuildContext context) async {
     // Check if event has coordinates
-    if (event.latitude == null || event.longitude == null) {
+    if (widget.event.latitude == null || widget.event.longitude == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Location coordinates not available'),
@@ -621,12 +621,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             // Include user location for directions
             mapsUrl = 'https://www.google.com/maps/dir/?api=1'
                 '&origin=${userPosition.latitude},${userPosition.longitude}'
-                '&destination=${event.latitude},${event.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
                 '&travelmode=driving';
           } else {
             // Just destination - Google Maps will prompt for user location or use browser location
             mapsUrl = 'https://www.google.com/maps/dir/?api=1'
-                '&destination=${event.latitude},${event.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
                 '&travelmode=driving';
           }
 
@@ -662,23 +662,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         if (userPosition != null) {
           // Try google.navigation: for turn-by-turn navigation
           urisToTry.add(Uri.parse(
-            'google.navigation:q=${event.latitude},${event.longitude}',
+            'google.navigation:q=${widget.event.latitude},${widget.event.longitude}',
           ));
 
           // Try comgooglemaps:// with directions
           urisToTry.add(Uri.parse(
-            'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&directionsmode=driving',
+            'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${widget.event.latitude},${widget.event.longitude}&directionsmode=driving',
           ));
         }
 
         // Try geo: scheme (works with any map app)
         urisToTry.add(Uri.parse(
-          'geo:${event.latitude},${event.longitude}?q=${event.latitude},${event.longitude}(${Uri.encodeComponent(event.name)})',
+          'geo:${widget.event.latitude},${widget.event.longitude}?q=${widget.event.latitude},${widget.event.longitude}(${Uri.encodeComponent(widget.event.name)})',
         ));
 
         // Try comgooglemaps:// without directions
         urisToTry.add(Uri.parse(
-          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+          'comgooglemaps://?q=${widget.event.latitude},${widget.event.longitude}',
         ));
 
         // Try each URI
@@ -700,17 +700,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
         if (userPosition != null) {
           urisToTry.add(Uri.parse(
-            'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&dirflg=d',
+            'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${widget.event.latitude},${widget.event.longitude}&dirflg=d',
           ));
         } else {
           urisToTry.add(Uri.parse(
-            'http://maps.apple.com/?q=${event.latitude},${event.longitude}',
+            'http://maps.apple.com/?q=${widget.event.latitude},${widget.event.longitude}',
           ));
         }
 
         // Fallback to Google Maps on iOS
         urisToTry.add(Uri.parse(
-          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+          'comgooglemaps://?q=${widget.event.latitude},${widget.event.longitude}',
         ));
 
         for (final uri in urisToTry) {
@@ -734,11 +734,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           if (userPosition != null) {
             mapsUrl = 'https://www.google.com/maps/dir/?api=1'
                 '&origin=${userPosition.latitude},${userPosition.longitude}'
-                '&destination=${event.latitude},${event.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
                 '&travelmode=driving';
           } else {
             mapsUrl = 'https://www.google.com/maps/dir/?api=1'
-                '&destination=${event.latitude},${event.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
                 '&travelmode=driving';
           }
 
