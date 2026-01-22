@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -6,7 +7,6 @@ import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../models/agenda_item.dart';
 import '../../models/session_models.dart';
-import '../../theme/app_theme.dart';
 import '../../blocs/agenda/agenda_bloc.dart';
 import '../../repositories/event_repository.dart';
 import '../../services/api_client.dart';
@@ -62,7 +62,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
         },
         builder: (context, state) {
           return Scaffold(
-            backgroundColor: AppTheme.gray50,
+            backgroundColor: AppColors.gray50,
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -70,7 +70,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
               ),
               title: Text(_localSessions.isNotEmpty ? 'Edit Event Agenda' : 'Event Created Successfully'),
               backgroundColor: Colors.white,
-              foregroundColor: AppTheme.gray900,
+              foregroundColor: AppColors.gray900,
               elevation: 0,
             ),
             body: state is AgendaLoading
@@ -83,7 +83,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                     onPressed: () => _showSessionDialog(context, dayIndex: _selectedDayIndex),
                     label: const Text('Add Session'),
                     icon: const Icon(Icons.add),
-                    backgroundColor: AppTheme.primaryIndigo,
+                    backgroundColor: AppColors.primaryIndigo,
                   )
                 : null,
           );
@@ -179,9 +179,9 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                   width: 80,
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primaryIndigo : Colors.white,
+                    color: isSelected ? AppColors.primaryIndigo : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isSelected ? AppTheme.primaryIndigo : AppTheme.gray300),
+                    border: Border.all(color: isSelected ? AppColors.primaryIndigo : AppColors.gray300),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -189,14 +189,14 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                       Text(
                         'Day',
                         style: TextStyle(
-                          color: isSelected ? Colors.white70 : AppTheme.gray500,
+                          color: isSelected ? Colors.white70 : AppColors.gray500,
                           fontSize: 12,
                         ),
                       ),
                       Text(
                         '${index + 1}',
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AppTheme.gray900,
+                          color: isSelected ? Colors.white : AppColors.gray900,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -231,7 +231,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                backgroundColor: AppTheme.primaryIndigo,
+                backgroundColor: AppColors.primaryIndigo,
               ),
               child: const Text('Save & Go to Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
@@ -258,11 +258,11 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
               children: [
                 Text(
                   startTime,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gray900),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.gray900),
                 ),
                 Text(
                   endTime,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.gray500),
+                  style: const TextStyle(fontSize: 12, color: AppColors.gray500),
                 ),
               ],
             ),
@@ -318,14 +318,14 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                             const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
                             const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
                           ],
-                          icon: const Icon(Icons.more_vert, size: 20, color: AppTheme.gray400),
+                          icon: const Icon(Icons.more_vert, size: 20, color: AppColors.gray400),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       session.sessionDescription,
-                      style: const TextStyle(color: AppTheme.gray600, fontSize: 14),
+                      style: const TextStyle(color: AppColors.gray600, fontSize: 14),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -350,7 +350,7 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                         const SizedBox(width: 8),
                         Text(
                           session.sessionType.toUpperCase(),
-                          style: TextStyle(fontSize: 10, color: AppTheme.gray500, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          style: TextStyle(fontSize: 10, color: AppColors.gray500, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                         ),
                       ],
                     ),
@@ -368,9 +368,9 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     switch (type.toLowerCase()) {
       case 'ceremony': return Colors.amber;
       case 'break': return Colors.teal;
-      case 'activity': return AppTheme.primaryPurple;
+      case 'activity': return AppColors.primaryPurple;
       case 'session':
-      default: return AppTheme.primaryIndigo;
+      default: return AppColors.primaryIndigo;
     }
   }
 
@@ -603,12 +603,12 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 14, color: AppTheme.gray500, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 14, color: AppColors.gray500, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(fontSize: 16, color: AppTheme.gray900, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 16, color: AppColors.gray900, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -708,7 +708,7 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                   height: 180,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.primaryIndigo.withOpacity(0.05),
+                    color: AppColors.primaryIndigo.withOpacity(0.05),
                   ),
                 ),
               ),
@@ -719,7 +719,7 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                   height: 140,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.primaryIndigo.withOpacity(0.1), width: 1),
+                    border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.1), width: 1),
                   ),
                 ),
               ),
@@ -730,13 +730,13 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                    colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryIndigo.withOpacity(0.3),
+                      color: AppColors.primaryIndigo.withOpacity(0.3),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -752,7 +752,7 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                 height: 120,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryIndigo),
                 ),
               ),
             ],
@@ -783,7 +783,7 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.gray900,
+                    color: AppColors.gray900,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -792,7 +792,7 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
                   _getSubtitle(_messageIndex),
                   style: const TextStyle(
                     fontSize: 16,
-                    color: AppTheme.gray500,
+                    color: AppColors.gray500,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -807,14 +807,14 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
             width: 240,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppTheme.gray100,
+              color: AppColors.gray100,
               borderRadius: BorderRadius.circular(20),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: const LinearProgressIndicator(
                 backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryIndigo),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryIndigo),
                 minHeight: 6,
               ),
             ),
@@ -825,13 +825,13 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 14, color: AppTheme.gray400),
+              Icon(Icons.lock_outline, size: 14, color: AppColors.gray400),
               SizedBox(width: 8),
               Text(
                 'Architecting via Empyre AI Engine',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.gray400,
+                  color: AppColors.gray400,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
                 ),

@@ -121,7 +121,7 @@ class _ProfileScreenContent extends StatelessWidget {
                                   backgroundColor: Colors.white,
                                   child: CircleAvatar(
                                     radius: 56,
-                                    backgroundColor: AppTheme.indigo100,
+                                    backgroundColor: AppColors.indigo100,
                                     backgroundImage: user.profilePic.isNotEmpty 
                                         ? NetworkImage(user.profilePic.fixImageUrl)
                                         : null,
@@ -136,7 +136,7 @@ class _ProfileScreenContent extends StatelessWidget {
                                             style: const TextStyle(
                                               fontSize: 40,
                                               fontWeight: FontWeight.bold,
-                                              color: AppTheme.primaryIndigo,
+                                              color: AppColors.primaryIndigo,
                                             ),
                                           )
                                         : null,

@@ -1,3 +1,4 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../project_helpers.dart';
@@ -6,7 +7,6 @@ import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../models/agenda_item.dart';
 import '../../models/attendee.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/status_badge.dart';
 
 class EventDetailsScreen extends StatelessWidget {
@@ -32,7 +32,7 @@ class EventDetailsScreen extends StatelessWidget {
     final horizontalPadding = context.isMobile ? 16.0 : context.width < 900 ? 24.0 : 32.0;
 
     return Scaffold(
-      backgroundColor: AppTheme.gray50,
+      backgroundColor: AppColors.gray50,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -41,10 +41,10 @@ class EventDetailsScreen extends StatelessWidget {
         title: const Text('Event Details'),
         actions: [
           CircleAvatar(
-            backgroundColor: AppTheme.indigo100,
+            backgroundColor: AppColors.indigo100,
             child: Text(
               user.name[0].upper,
-              style: const TextStyle(color: AppTheme.primaryIndigo),
+              style: const TextStyle(color: AppColors.primaryIndigo),
             ),
           ).paddingAll(context, 8),
         ],
@@ -78,9 +78,9 @@ class EventDetailsScreen extends StatelessWidget {
                           errorBuilder: (context, error, stackTrace) => Container(
                             height: imageHeight,
                             width: double.infinity,
-                            color: AppTheme.indigo100,
+                            color: AppColors.indigo100,
                             child: const Icon(Icons.image_not_supported_outlined, 
-                                color: AppTheme.primaryIndigo, size: 48),
+                                color: AppColors.primaryIndigo, size: 48),
                           ),
                         )
                       else
@@ -89,7 +89,7 @@ class EventDetailsScreen extends StatelessWidget {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [AppTheme.primaryIndigo.withOpacity(0.1), AppTheme.primaryPurple.withOpacity(0.1)],
+                              colors: [AppColors.primaryIndigo.withOpacity(0.1), AppColors.primaryPurple.withOpacity(0.1)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -139,7 +139,7 @@ class EventDetailsScreen extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: AppTheme.indigo100,
+                                          color: AppColors.indigo100,
                                           borderRadius: 20.radius,
                                         ),
                                         child: Text(
@@ -147,7 +147,7 @@ class EventDetailsScreen extends StatelessWidget {
                                           style: const TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w900,
-                                            color: AppTheme.primaryIndigo,
+                                            color: AppColors.primaryIndigo,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -160,7 +160,7 @@ class EventDetailsScreen extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: context.isMobile ? 24 : 36,
                                       fontWeight: FontWeight.w900,
-                                      color: AppTheme.gray900,
+                                      color: AppColors.gray900,
                                       letterSpacing: -1,
                                       height: 1.1,
                                     ),
@@ -170,7 +170,7 @@ class EventDetailsScreen extends StatelessWidget {
                                     event.description,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: AppTheme.gray600,
+                                      color: AppColors.gray600,
                                       height: 1.6,
                                     ),
                                   ),
@@ -185,7 +185,7 @@ class EventDetailsScreen extends StatelessWidget {
                       Card(
                         elevation: 0,
                         shape: 16.roundBorder.copyWith(
-                          side: BorderSide(color: AppTheme.gray200),
+                          side: BorderSide(color: AppColors.gray200),
                         ),
                         child: Column(
                           children: [
@@ -195,7 +195,7 @@ class EventDetailsScreen extends StatelessWidget {
                               'Schedule',
                               _formatDateRange(event.date, event.endDate),
                             ),
-                            const Divider(height: 1, color: AppTheme.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
                             _buildLogisticsItem(
                               context,
                               Icons.location_on_rounded,
@@ -208,7 +208,7 @@ class EventDetailsScreen extends StatelessWidget {
                                 );
                               },
                             ),
-                            const Divider(height: 1, color: AppTheme.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
                             _buildLogisticsItem(
                               context,
                               Icons.timer_rounded,
@@ -230,7 +230,7 @@ class EventDetailsScreen extends StatelessWidget {
                               event.audienceSize?.toString() ?? '0',
                               'Capacity',
                               Icons.group_rounded,
-                              AppTheme.primaryIndigo,
+                              AppColors.primaryIndigo,
                             ),
                             12.width,
                             _buildStatBadge(
@@ -238,7 +238,7 @@ class EventDetailsScreen extends StatelessWidget {
                               event.attendeeCount?.toString() ?? '0',
                               'Registered',
                               Icons.person_add_rounded,
-                              AppTheme.green600,
+                              AppColors.success,
                             ),
                             12.width,
                             _buildStatBadge(
@@ -246,7 +246,7 @@ class EventDetailsScreen extends StatelessWidget {
                               event.planningMode == 'automated' ? 'AI' : 'Manual',
                               'Mode',
                               event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
-                              AppTheme.primaryPurple,
+                              AppColors.primaryPurple,
                             ),
                           ],
                         ),
@@ -271,8 +271,8 @@ class EventDetailsScreen extends StatelessWidget {
                           title: 'Agenda',
                           subtitle: '${agendaItems.length} items',
                           icon: Icons.list_alt,
-                          iconColor: AppTheme.primaryIndigo,
-                          iconBg: AppTheme.indigo100,
+                          iconColor: AppColors.primaryIndigo,
+                          iconBg: AppColors.indigo100,
                           onTap: () => onNavigate('agenda-view'),
                         ),
                         _buildActionCard(
@@ -280,8 +280,8 @@ class EventDetailsScreen extends StatelessWidget {
                           title: 'Attendees',
                           subtitle: '${attendees.length} registered',
                           icon: Icons.people,
-                          iconColor: AppTheme.green600,
-                          iconBg: AppTheme.statusOngoing,
+                          iconColor: AppColors.success,
+                          iconBg: AppColors.statusOngoing,
                           onTap: () => onNavigate('attendees'),
                         ),
                         _buildActionCard(
@@ -289,8 +289,8 @@ class EventDetailsScreen extends StatelessWidget {
                           title: 'Feedback',
                           subtitle: 'Collect responses',
                           icon: Icons.feedback,
-                          iconColor: AppTheme.primaryPurple,
-                          iconBg: AppTheme.statusCompleted,
+                          iconColor: AppColors.primaryPurple,
+                          iconBg: AppColors.statusCompleted,
                           onTap: () => onNavigate('feedback-collection'),
                         ),
                       ],
@@ -323,10 +323,10 @@ class EventDetailsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.gray50,
+              color: AppColors.gray50,
               borderRadius: 12.radius,
             ),
-            child: Icon(icon, size: 20, color: AppTheme.primaryIndigo),
+            child: Icon(icon, size: 20, color: AppColors.primaryIndigo),
           ),
           16.width,
           Expanded(
@@ -338,7 +338,7 @@ class EventDetailsScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.gray500,
+                    color: AppColors.gray500,
                   ),
                 ),
                 Text(
@@ -346,7 +346,7 @@ class EventDetailsScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.gray900,
+                    color: AppColors.gray900,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -355,7 +355,7 @@ class EventDetailsScreen extends StatelessWidget {
             ),
           ),
           if (isClickable)
-            const Icon(Icons.chevron_right_rounded, color: AppTheme.gray400),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.gray400),
         ],
       ).paddingAll(context, 16),
     );
@@ -367,7 +367,7 @@ class EventDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: 16.radius,
-        border: Border.all(color: AppTheme.gray200),
+        border: Border.all(color: AppColors.gray200),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -383,7 +383,7 @@ class EventDetailsScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.gray900,
+                  color: AppColors.gray900,
                 ),
               ),
               Text(
@@ -391,7 +391,7 @@ class EventDetailsScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.gray500,
+                  color: AppColors.gray500,
                   letterSpacing: 0.2,
                 ),
               ),
@@ -415,7 +415,7 @@ class EventDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: 16.radius,
-        border: Border.all(color: AppTheme.gray200),
+        border: Border.all(color: AppColors.gray200),
         boxShadow: [
           BoxShadow(
             color: iconColor.withOpacity(0.05),
@@ -445,7 +445,7 @@ class EventDetailsScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.gray900,
+                  color: AppColors.gray900,
                   letterSpacing: -0.4,
                 ),
               ),
@@ -454,7 +454,7 @@ class EventDetailsScreen extends StatelessWidget {
                 subtitle,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: AppTheme.gray500,
+                  color: AppColors.gray500,
                   fontWeight: FontWeight.w500,
                 ),
               ),

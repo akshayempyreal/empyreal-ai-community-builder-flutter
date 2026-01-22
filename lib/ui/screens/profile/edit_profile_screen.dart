@@ -126,10 +126,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   children: [
                                     CircleAvatar(
                                       radius: 60,
-                                      backgroundColor: AppTheme.primaryIndigo,
+                                      backgroundColor: AppColors.primaryIndigo,
                                       child: CircleAvatar(
                                         radius: 58,
-                                        backgroundColor: AppTheme.gray100,
+                                        backgroundColor: AppColors.gray100,
                                         backgroundImage: _imageFile != null
                                             ? (kIsWeb
                                                 ? NetworkImage(_imageFile!.path) as ImageProvider
@@ -141,7 +141,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           debugPrint('Error loading profile image: $exception');
                                         },
                                         child: (_imageFile == null && (widget.user.profilePic == null || widget.user.profilePic!.isEmpty))
-                                            ? const Icon(Icons.person, size: 60, color: AppTheme.gray400)
+                                            ? const Icon(Icons.person, size: 60, color: AppColors.gray400)
                                             : null,
                                       ),
                                     ),
