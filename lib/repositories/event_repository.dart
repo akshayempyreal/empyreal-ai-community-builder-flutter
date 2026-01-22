@@ -64,6 +64,28 @@ class EventRepository {
     return EventListResponse.fromJson(response.data);
   }
 
+<<<<<<< HEAD
+=======
+  Future<SaveSessionsResponse> saveSessions(SaveSessionsRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-sessions',
+  Future<SaveSessionsResponse> saveSessions(SaveSessionsRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-sessions',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return SaveSessionsResponse.fromJson(response.data);
+  }
+
+  Future<CreateEventResponse> joinLeaveEvent(String id, String token) async {
+    final response = await _apiClient.get(
+      '/api/user/event/join-leave/$id',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
+
   Future<CreateEventResponse> updateEvent(String id, String name, String token) async {
     final response = await _apiClient.post(
       '/api/user/event/update',
@@ -74,6 +96,7 @@ class EventRepository {
       headers: {'Authorization': 'Bearer $token'},
     );
     return CreateEventResponse.fromJson(response.data);
+<<<<<<< HEAD
   }
 
   Future<SaveSessionsResponse> saveSessions(SaveSessionsRequest request, String token) async {
@@ -83,5 +106,7 @@ class EventRepository {
       headers: {'Authorization': 'Bearer $token'},
     );
     return SaveSessionsResponse.fromJson(response.data);
+=======
+>>>>>>> origin/Feature/Event-new-api
   }
 }
