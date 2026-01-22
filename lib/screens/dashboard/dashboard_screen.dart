@@ -320,7 +320,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   else if (events.isEmpty)
                     _buildEmptyState()
                   else
-                    _buildEventsList(events, eventState),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _buildEventsList(events, eventState),
+                    ),
                 ],
               ),
             ),
@@ -640,16 +643,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       spacing = 16;
     }
     
-    // Use GridView for multi-column layout, ListView for single column
+    // Use ListView.builder for single column layout, GridView for multi-column
     if (crossAxisCount == 1) {
-      return ListView.separated(
+      if (events.isEmpty && !isLoadingMore) {
+        return _buildEmptyState();
+      }
+      
+      return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: events.length + (hasMore || isLoadingMore ? 1 : 0),
-        separatorBuilder: (context, index) {
-          if (index >= events.length) return const SizedBox.shrink();
-          return SizedBox(height: spacing);
-        },
         itemBuilder: (context, index) {
           if (index == events.length) {
             return Padding(
@@ -661,9 +664,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             );
           }
-          return EventCard(
-            event: events[index],
-            onTap: () => widget.onSelectEvent(events[index]),
+          return Padding(
+            padding: EdgeInsets.only(bottom: index < events.length - 1 ? spacing : 0),
+            child: EventCard(
+              event: events[index],
+              onTap: () => widget.onSelectEvent(events[index]),
+            ),
           );
         },
       );

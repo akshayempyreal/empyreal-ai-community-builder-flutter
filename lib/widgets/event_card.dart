@@ -36,140 +36,170 @@ class _EventCardState extends State<EventCard> {
       ),
       child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(16),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Adjust image height based on available space
-            final imageHeight = constraints.maxHeight > 0 
-                ? (constraints.maxHeight * 0.4).clamp(100.0, 160.0) 
+            // Detect if we're in a GridView (bounded height) or ListView (unbounded height)
+            // GridView provides finite maxHeight, ListView provides infinite maxHeight
+            final isGridView = constraints.maxHeight.isFinite && 
+                               constraints.maxHeight > 0 && 
+                               constraints.maxWidth.isFinite;
+            
+            // Calculate image height based on layout type
+            final imageHeight = isGridView
+                ? (constraints.maxHeight * 0.4).clamp(100.0, 160.0)
                 : 140.0;
 
-            return SizedBox(
-              height: constraints.maxHeight > 0 ? constraints.maxHeight : null,
+            // Build content widget (reusable for both layouts)
+            final contentWidget = Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max, // Fill available space in grid
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                // Event Image or Placeholder
-                SizedBox(
-                  height: imageHeight,
-                  width: double.infinity,
-                  child: _buildImage(imageHeight),
-                ),
-
-                // Content Area
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                      // Header: Status and Type
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          StatusBadge(status: widget.event.status),
-                          Flexible(
-                            child: Text(
-                              widget.event.type.upper,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: theme.hintColor,
-                                letterSpacing: 1.2,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  // Header: Status and Type
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      StatusBadge(status: widget.event.status),
+                      Flexible(
+                        child: Text(
+                          widget.event.type.upper,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: theme.hintColor,
+                            letterSpacing: 1.2,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Event Name
-                      Text(
-                        widget.event.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Description
-                      Text(
-                        widget.event.description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      
-                      const SizedBox(height: 16),
-
-                      // Details Wrap - Replaces Row to prevent horizontal overflow
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 8,
-                        children: [
-                          _buildCompactInfo(context, Icons.calendar_today_rounded, _formatDateRange(widget.event.date, widget.event.endDate)),
-                          _buildCompactInfo(context, Icons.timer_rounded, '${widget.event.duration}h/day'),
-                          _buildCompactInfo(context, Icons.group_rounded, '${widget.event.attendeeCount ?? 0} members'),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Footer Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: isDark ? colorScheme.surfaceVariant : AppColors.gray50,
-                                borderRadius: 8.radius,
-                                border: Border.all(
-                                  color: isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    widget.event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
-                                    size: 14,
-                                    color: colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      widget.event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.arrow_forward_rounded, size: 18, color: theme.hintColor),
-                        ],
                       ),
                     ],
-                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+
+                  // Event Name
+                  Text(
+                    widget.event.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Description
+                  Text(
+                    widget.event.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+                  // Details Wrap - Replaces Row to prevent horizontal overflow
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      _buildCompactInfo(context, Icons.calendar_today_rounded, _formatDateRange(widget.event.date, widget.event.endDate)),
+                      _buildCompactInfo(context, Icons.timer_rounded, '${widget.event.duration}h/day'),
+                      _buildCompactInfo(context, Icons.group_rounded, '${widget.event.attendeeCount ?? 0} members'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Footer Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? colorScheme.surfaceVariant : AppColors.gray50,
+                            borderRadius: 8.radius,
+                            border: Border.all(
+                              color: isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                widget.event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
+                                size: 14,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  widget.event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_rounded, size: 18, color: theme.hintColor),
+                    ],
+                  ),
                 ],
               ),
             );
+
+            // Return appropriate layout based on constraints
+            if (isGridView) {
+              // GridView (Web/Desktop): Use fixed height with Expanded content
+              return SizedBox(
+                height: constraints.maxHeight,
+                width: constraints.maxWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    // Image section - fixed height
+                    SizedBox(
+                      height: imageHeight,
+                      width: double.infinity,
+                      child: _buildImage(imageHeight),
+                    ),
+                    // Content section - expands to fill remaining space
+                    Expanded(
+                      child: contentWidget,
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              // ListView (Mobile): Use intrinsic sizing - no fixed height
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Image section - fixed height
+                  SizedBox(
+                    height: imageHeight,
+                    width: double.infinity,
+                    child: _buildImage(imageHeight),
+                  ),
+                  // Content section - natural size
+                  contentWidget,
+                ],
+              );
+            }
           },
         ),
       ),
@@ -178,12 +208,30 @@ class _EventCardState extends State<EventCard> {
 
   Widget _buildImage(double height) {
     if (widget.event.image != null && widget.event.image!.isNotEmpty) {
-      return Image.network(
-        widget.event.image!.fixImageUrl,
-        height: height,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(height, Icons.broken_image_outlined),
+      return ClipRect(
+        child: Image.network(
+          widget.event.image!.fixImageUrl,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: height,
+              width: double.infinity,
+              color: AppColors.gray100,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(height, Icons.broken_image_outlined),
+        ),
       );
     }
     return _buildPlaceholder(height, Icons.image_outlined);
