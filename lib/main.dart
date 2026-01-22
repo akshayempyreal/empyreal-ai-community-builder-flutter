@@ -3,6 +3,7 @@ import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constan
 import 'package:empyreal_ai_community_builder_flutter/screens/notifications/notification_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/settings_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/webview_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/ui/screens/events/generated_agenda_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -125,6 +126,31 @@ class _AppNavigatorState extends State<AppNavigator> {
   List<Reminder> _reminders = [];
   List<FeedbackResponse> _feedbackResponses = [];
   int _unreadNotificationCount = 0;
+  String? _generatedAgendaText; // Store generated agenda text
+  
+  void _safeNavigateToDashboard() {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _currentPage = 'dashboard';
+        _generatedAgendaText = null; // Clear generated agenda
+      });
+    } catch (e) {
+      debugPrint('Error navigating to dashboard: $e');
+    }
+  }
+  
+  void _navigateToGeneratedAgenda(String agendaText) {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _generatedAgendaText = agendaText;
+        _currentPage = 'generated-agenda';
+      });
+    } catch (e) {
+      debugPrint('Error navigating to generated agenda: $e');
+    }
+  }
 
   @override
   void initState() {
@@ -456,6 +482,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'ai-agenda':
         case 'manual-agenda':
         case 'agenda-view':
+        case 'generated-agenda':
         case 'attendees':
         case 'reminders':
         case 'feedback-collection':
@@ -612,6 +639,9 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
+          token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
         );
 
       case 'agenda-view':
@@ -635,6 +665,37 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
           token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
+          isEditMode: _agendaItems.isNotEmpty, // Edit mode if agenda already exists
+        );
+      
+      case 'generated-agenda':
+        if (_generatedAgendaText == null || _currentEvent == null) {
+          // Fallback to dashboard if data is missing
+          return DashboardScreen(
+            key: const ValueKey('dashboard-fallback'),
+            user: _user!,
+            token: _token,
+            onCreateEvent: () => setState(() => _currentPage = 'create-event'),
+            onSelectEvent: _handleSelectEvent,
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+            onNavigateToNotifications: () async {
+              setState(() => _currentPage = 'notifications');
+            },
+            unreadCount: _unreadNotificationCount,
+          );
+        }
+        return GeneratedAgendaScreen(
+          key: const ValueKey('generated-agenda'),
+          event: _currentEvent!,
+          agendaText: _generatedAgendaText!,
+          user: _user!,
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'manual-agenda'),
+          onSaveAndRedirect: _safeNavigateToDashboard,
         );
       
       case 'attendees':

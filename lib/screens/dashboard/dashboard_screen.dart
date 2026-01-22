@@ -1,4 +1,5 @@
 import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
+import 'package:flutter/foundation.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -244,6 +245,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: AppColors.indigo100,
           backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
               ? NetworkImage(widget.user.profilePic!.fixImageUrl)
+              : null,
+          onBackgroundImageError: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
+              ? (exception, stackTrace) {
+                  debugPrint('Error loading profile image: $exception');
+                }
               : null,
           child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
               ? Text(

@@ -3,12 +3,17 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../repositories/event_repository.dart';
+import '../../../services/api_client.dart';
 
-class AIAgendaBuilderScreen extends StatelessWidget {
+class AIAgendaBuilderScreen extends StatefulWidget {
   final Event event;
   final Function(List<AgendaItem>) onSaveAgenda;
   final VoidCallback onBack;
   final User user;
+  final String token;
+  final VoidCallback onSaveAndRedirect;
+  final Function(String) onNavigateToGeneratedAgenda;
 
   const AIAgendaBuilderScreen({
     super.key,
@@ -16,16 +21,128 @@ class AIAgendaBuilderScreen extends StatelessWidget {
     required this.onSaveAgenda,
     required this.onBack,
     required this.user,
+    required this.token,
+    required this.onSaveAndRedirect,
+    required this.onNavigateToGeneratedAgenda,
   });
 
   @override
+  State<AIAgendaBuilderScreen> createState() => _AIAgendaBuilderScreenState();
+}
+
+class _AIAgendaBuilderScreenState extends State<AIAgendaBuilderScreen> {
+  bool _isGenerating = false;
+  String? _errorMessage;
+  String? _generatedAgenda;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateAgenda();
+  }
+
+  Future<void> _generateAgenda() async {
+    setState(() {
+      _isGenerating = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final repository = EventRepository(ApiClient());
+      final response = await repository.generateAgenda(
+        widget.event.id,
+        widget.token,
+      );
+
+      if (response.status && response.data != null) {
+        setState(() {
+          _generatedAgenda = response.data!.agenda;
+          _isGenerating = false;
+        });
+        
+        // Navigate to generated agenda screen using state-based navigation
+        if (mounted) {
+          widget.onNavigateToGeneratedAgenda(_generatedAgenda!);
+        }
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      setState(() {
+        _isGenerating = false;
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+            onPressed: widget.onBack,
+          ),
+          title: const Text(
+            'AI Generating Agenda',
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 24),
+                const Text(
+                  'Failed to Generate Agenda',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: _generateAgenda,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text(
           'AI Generating Agenda',
@@ -43,120 +160,88 @@ class AIAgendaBuilderScreen extends StatelessWidget {
           child: Container(
             color: Colors.blue,
             height: 2,
-            width: 120, // Approximate width for the indicator
+            width: 120,
           ),
         ),
       ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 600
-          ? _buildBottomNav()
-          : null,
       body: SafeArea(
         child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 20),
-                            // AI Circle Indicator
-                            _buildAICircle(),
-                            const SizedBox(height: 32),
+                    const SizedBox(height: 20),
+                    // AI Circle Indicator
+                    _buildAICircle(),
+                    const SizedBox(height: 32),
 
-                            // Status Text
-                            const Text(
-                              'Optimizing break placement...',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Analyzing event flow',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.info,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-
-                            // Progress Section
-                            _buildProgressSection(),
-                            const SizedBox(height: 32),
-
-                            // Live Suggestions Header
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Live AI Suggestions',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.indigo100,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    '4 NEW',
-                                    style: TextStyle(
-                                      color: AppColors.primaryIndigo,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Suggestion Card
-                            _buildSuggestionCard(),
-
-                            const SizedBox(height: 16),
-
-                            // Swipe hint
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Column(
-                                  children: [
-                                    Icon(Icons.swipe_left, color: AppColors.gray400),
-                                    SizedBox(height: 4),
-                                    Text('SWIPE LEFT TO SKIP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
-                                  ],
-                                ),
-                                Column(
-                                  children: [
-                                    Icon(Icons.swipe_right, color: AppColors.gray400),
-                                    SizedBox(height: 4),
-                                    Text('SWIPE RIGHT TO KEEP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
-                                  ],
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Venue Layout Analysis
-                            _buildVenueAnalysis(),
-                          ],
-                        ),
+                    // Status Text
+                    Text(
+                      _isGenerating ? 'Generating your agenda...' : 'Agenda generated!',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isGenerating ? 'AI is analyzing your event details' : 'Please wait...',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.info,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 32),
+
+                    // Progress Section
+                    _buildProgressSection(),
+                    const SizedBox(height: 32),
+
+                    if (_isGenerating) ...[
+                      // Live Suggestions Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'AI is working...',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.indigo100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'PROCESSING',
+                              style: TextStyle(
+                                color: AppColors.primaryIndigo,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSuggestionCard(),
+                    ],
                   ],
                 ),
-
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
