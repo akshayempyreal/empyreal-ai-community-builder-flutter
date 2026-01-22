@@ -130,4 +130,12 @@ class EventRepository {
     );
     return DashboardCountsResponse.fromJson(response.data);
   }
+
+  Future<DeleteEventResponse> deleteEvent(String eventId, String token) async {
+    final response = await _apiClient.delete(
+      '/api/user/event/delete/$eventId',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return DeleteEventResponse.fromJson(response.data);
+  }
 }

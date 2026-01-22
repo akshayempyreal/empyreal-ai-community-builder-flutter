@@ -93,6 +93,24 @@ class ApiClient {
     }
   }
 
+  Future<Response> delete(String path, {
+    Map<String, dynamic>? headers,
+    Duration? receiveTimeout,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        path,
+        options: Options(
+          headers: headers,
+          receiveTimeout: receiveTimeout,
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
 
   Exception _handleError(DioException e) {
     String message = 'Something went wrong';

@@ -106,9 +106,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final bloc = EventListBloc(EventRepository(ApiClient()))
               ..add(FetchEventList(
                 request: EventListRequest(
-                  page: 1, 
-                  limit: 10, 
-                  ownBy: _selectedOwnership, 
+                  page: 1,
+                  limit: 10,
+                  ownBy: _selectedOwnership,
                   status: null, // Pass null to send empty string ""
                 ),
                 token: widget.token,
@@ -295,14 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 32),
 
                   // Events list header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildOwnershipToggle(context),
-                      if (isEventsLoading)
-                        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    ],
-                  ),
+                  _buildOwnershipToggle(context),
                   const SizedBox(height: 16),
 
                   if (eventState is EventListFailure)

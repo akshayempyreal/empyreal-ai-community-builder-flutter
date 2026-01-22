@@ -16,3 +16,13 @@ class ToggleJoinLeave extends EventActionsEvent {
   @override
   List<Object?> get props => [eventId, token];
 }
+
+class DeleteEvent extends EventActionsEvent {
+  final String eventId;
+  final String token;
+
+  const DeleteEvent({required this.eventId, required this.token});
+
+  @override
+  List<Object?> get props => [eventId, token];
+}
