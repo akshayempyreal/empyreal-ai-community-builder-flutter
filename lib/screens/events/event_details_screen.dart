@@ -1,4 +1,3 @@
-import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
@@ -11,14 +10,17 @@ import '../../widgets/status_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../repositories/event_repository.dart';
+import '../../services/api_client.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final Event event;
   final List<AgendaItem> agendaItems;
   final List<Attendee> attendees;
   final Function(String) onNavigate;
   final VoidCallback onBack;
   final User user;
+  final String token;
 
   const EventDetailsScreen({
     super.key,
@@ -28,42 +30,128 @@ class EventDetailsScreen extends StatelessWidget {
     required this.onNavigate,
     required this.onBack,
     required this.user,
+    required this.token,
   });
 
   @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  late Event _currentEvent;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEvent = widget.event;
+  }
+
+  bool get _isOwner => widget.user.id == _currentEvent.createdBy;
+
+  Future<void> _showEditDialog() async {
+    final nameController = TextEditingController(text: _currentEvent.name);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Event Name'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Event Name',
+            hintText: 'Enter new event name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && result != _currentEvent.name) {
+      _updateEventName(result);
+    }
+  }
+
+  Future<void> _updateEventName(String newName) async {
+    setState(() => _isLoading = true);
+    try {
+      final repository = EventRepository(ApiClient());
+      final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
+
+      if (response.status && response.data != null) {
+        setState(() {
+          _currentEvent = Event.fromEventData(response.data!);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event updated successfully')),
+          );
+        }
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final horizontalPadding = context.isMobile ? 16.0 : context.width < 900 ? 24.0 : 32.0;
 
     return Scaffold(
-      backgroundColor: AppColors.gray50,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text('Event Details'),
         actions: [
-          CircleAvatar(
-            backgroundColor: AppColors.indigo100,
-            child: Text(
-              user.name[0].upper,
-              style: const TextStyle(color: AppColors.primaryIndigo),
+          if (_isOwner)
+            IconButton(
+              icon: _isLoading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.edit_outlined),
+              onPressed: _isLoading ? null : _showEditDialog,
+              tooltip: 'Edit Event',
             ),
-          ).paddingAll(context, 8),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(
+              backgroundColor: colorScheme.primary.withOpacity(0.1),
+              child: Text(
+                widget.user.name[0].toUpperCase(),
+                style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
-            final effectiveWidth = (viewport.maxWidth - (horizontalPadding * 2)).clamp(0.0, double.infinity);
-            final computedCount = math.max(1, (effectiveWidth / 320).floor());
-            final crossAxisCount = context.isMobile ? 1 : computedCount.clamp(1, 4);
-            final headerPadding = context.isMobile ? 16.0 : 24.0;
-            final titleSize = context.isMobile ? 22.0 : 28.0;
-
-            final imageHeight = context.isMobile ? 260.0 : 450.0;
             final contentMaxWidth = 1100.0;
-            final isDesktop = viewport.maxWidth >= 900;
+            final imageHeight = context.isMobile ? 260.0 : 450.0;
 
             return SingleChildScrollView(
               child: Column(
@@ -72,18 +160,18 @@ class EventDetailsScreen extends StatelessWidget {
                   // Cinematic Hero Image Header
                   Stack(
                     children: [
-                      if (event.image != null && event.image!.isNotEmpty)
+                      if (_currentEvent.image != null && _currentEvent.image!.isNotEmpty)
                         Image.network(
-                          event.image!.fixImageUrl,
+                          _currentEvent.image!.fixImageUrl,
                           height: imageHeight,
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
                             height: imageHeight,
                             width: double.infinity,
-                            color: AppColors.indigo100,
-                            child: const Icon(Icons.image_not_supported_outlined, 
-                                color: AppColors.primaryIndigo, size: 48),
+                            color: colorScheme.primary.withOpacity(0.05),
+                            child: Icon(Icons.image_not_supported_outlined,
+                                color: colorScheme.primary, size: 48),
                           ),
                         )
                       else
@@ -92,13 +180,12 @@ class EventDetailsScreen extends StatelessWidget {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [AppColors.primaryIndigo.withOpacity(0.1), AppColors.primaryPurple.withOpacity(0.1)],
+                              colors: [colorScheme.primary.withOpacity(0.1), colorScheme.secondary.withOpacity(0.1)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                           ),
                         ),
-                      // Subtle gradient overlay for better text contrast if needed
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
@@ -127,53 +214,46 @@ class EventDetailsScreen extends StatelessWidget {
                           Transform.translate(
                             offset: Offset(0, context.isMobile ? -30 : -50),
                             child: Card(
-                              elevation: 8,
-                              shadowColor: Colors.black.withOpacity(0.15),
-                              shape: 20.roundBorder.copyWith(
-                                side: const BorderSide(color: Colors.white, width: 2),
-                              ),
+                              elevation: 4,
+                              shadowColor: Colors.black.withOpacity(0.1),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      StatusBadge(status: event.status),
+                                      StatusBadge(status: _currentEvent.status),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: AppColors.indigo100,
+                                          color: colorScheme.primary.withOpacity(0.1),
                                           borderRadius: 20.radius,
                                         ),
                                         child: Text(
-                                          _getDaysLeft(event.date).upper,
-                                          style: const TextStyle(
+                                          _getDaysLeft(_currentEvent.date).toUpperCase(),
+                                          style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w900,
-                                            color: AppColors.primaryIndigo,
+                                            color: colorScheme.primary,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  16.height(context),
+                                  const SizedBox(height: 16),
                                   Text(
-                                    event.name,
-                                    style: TextStyle(
-                                      fontSize: context.isMobile ? 24 : 36,
+                                    _currentEvent.name,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w900,
-                                      color: AppColors.gray900,
                                       letterSpacing: -1,
-                                      height: 1.1,
                                     ),
                                   ),
-                                  12.height(context),
+                                  const SizedBox(height: 12),
                                   Text(
-                                    event.description,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: AppColors.gray600,
+                                    _currentEvent.description,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                                       height: 1.6,
                                     ),
                                   ),
@@ -186,38 +266,34 @@ class EventDetailsScreen extends StatelessWidget {
 
                       // Logistics Card (When & Where)
                       Card(
-                        elevation: 0,
-                        shape: 16.roundBorder.copyWith(
-                          side: BorderSide(color: AppColors.gray200),
-                        ),
                         child: Column(
                           children: [
                             _buildLogisticsItem(
                               context,
                               Icons.calendar_today_rounded,
                               'Schedule',
-                              _formatDateRange(event.date, event.endDate),
+                              _formatDateRange(_currentEvent.date, _currentEvent.endDate),
                             ),
-                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1),
                             _buildLogisticsItem(
                               context,
                               Icons.location_on_rounded,
                               'Location',
-                              event.location,
+                              _currentEvent.location,
                               isClickable: true,
                               onTap: () => _openLocationInMaps(context),
                             ),
-                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1),
                             _buildLogisticsItem(
                               context,
                               Icons.timer_rounded,
                               'Typical Duration',
-                              '${event.duration} hours per session',
+                              '${_currentEvent.duration} hours per session',
                             ),
                           ],
                         ),
                       ),
-                      20.height(context),
+                      const SizedBox(height: 20),
 
                       // Stats Row
                       SingleChildScrollView(
@@ -226,74 +302,73 @@ class EventDetailsScreen extends StatelessWidget {
                           children: [
                             _buildStatBadge(
                               context,
-                              event.audienceSize?.toString() ?? '0',
+                              _currentEvent.audienceSize?.toString() ?? '0',
                               'Capacity',
                               Icons.group_rounded,
-                              AppColors.primaryIndigo,
+                              colorScheme.primary,
                             ),
-                            12.width,
+                            const SizedBox(width: 12),
                             _buildStatBadge(
                               context,
-                              event.attendeeCount?.toString() ?? '0',
+                              _currentEvent.attendeeCount?.toString() ?? '0',
                               'Registered',
                               Icons.person_add_rounded,
-                              AppColors.success,
+                              Colors.green,
                             ),
-                            12.width,
+                            const SizedBox(width: 12),
                             _buildStatBadge(
                               context,
-                              event.planningMode == 'automated' ? 'AI' : 'Manual',
+                              _currentEvent.planningMode == 'automated' ? 'AI' : 'Manual',
                               'Mode',
-                              event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
-                              AppColors.primaryPurple,
+                              _currentEvent.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
+                              colorScheme.secondary,
                             ),
                           ],
                         ),
                       ).paddingHorizontal(context, 4),
-                      24.height(context),
+                      const SizedBox(height: 24),
 
                     // Action cards Grid
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: context.isMobile
-                          ? 1.9
-                          : crossAxisCount >= 4
-                              ? 1.1
-                              : 1.35,
-                      children: [
-                        _buildActionCard(
-                          context,
-                          title: 'Agenda',
-                          subtitle: '${agendaItems.length} items',
-                          icon: Icons.list_alt,
-                          iconColor: AppColors.primaryIndigo,
-                          iconBg: AppColors.indigo100,
-                          onTap: () => onNavigate('agenda-view'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Attendees',
-                          subtitle: '${attendees.length} registered',
-                          icon: Icons.people,
-                          iconColor: AppColors.success,
-                          iconBg: AppColors.statusOngoing,
-                          onTap: () => onNavigate('attendees'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Feedback',
-                          subtitle: 'Collect responses',
-                          icon: Icons.feedback,
-                          iconColor: AppColors.primaryPurple,
-                          iconBg: AppColors.statusCompleted,
-                          onTap: () => onNavigate('feedback-collection'),
-                        ),
-                      ],
-                    ),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final effectiveWidth = (constraints.maxWidth).clamp(0.0, double.infinity);
+                      final computedCount = math.max(1, (effectiveWidth / 320).floor());
+                      final crossAxisCount = context.isMobile ? 1 : computedCount.clamp(1, 4);
+
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: context.isMobile ? 2.5 : 1.5,
+                        children: [
+                          _buildActionCard(
+                            context,
+                            title: 'Agenda',
+                            subtitle: '${widget.agendaItems.length} items',
+                            icon: Icons.list_alt,
+                            iconColor: colorScheme.primary,
+                            onTap: () => widget.onNavigate('agenda-view'),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: 'Attendees',
+                            subtitle: '${widget.attendees.length} registered',
+                            icon: Icons.people,
+                            iconColor: Colors.green,
+                            onTap: () => widget.onNavigate('attendees'),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: 'Feedback',
+                            subtitle: 'Collect responses',
+                            icon: Icons.feedback,
+                            iconColor: colorScheme.secondary,
+                            onTap: () => widget.onNavigate('feedback-collection'),
+                          ),
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 32),
                     ],
                   ).paddingHorizontal(context, horizontalPadding),
@@ -315,84 +390,79 @@ class EventDetailsScreen extends StatelessWidget {
     String value, 
     {bool isClickable = false, VoidCallback? onTap}
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: 12.radius,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.05),
+                borderRadius: 12.radius,
+              ),
+              child: Icon(icon, size: 20, color: colorScheme.primary),
             ),
-            child: Icon(icon, size: 20, color: AppColors.primaryIndigo),
-          ),
-          16.width,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.gray500,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.hintColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gray900,
+                  Text(
+                    value,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          if (isClickable)
-            const Icon(Icons.chevron_right_rounded, color: AppColors.gray400),
-        ],
-      ).paddingAll(context, 16),
+            if (isClickable)
+              Icon(Icons.chevron_right_rounded, color: theme.hintColor),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildStatBadge(BuildContext context, String value, String label, IconData icon, Color color) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: 16.radius,
-        border: Border.all(color: AppColors.gray200),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: color),
-          10.width,
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.gray900,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray500,
-                  letterSpacing: 0.2,
-                ),
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
               ),
             ],
           ),
@@ -407,61 +477,47 @@ class EventDetailsScreen extends StatelessWidget {
     required String subtitle,
     required IconData icon,
     required Color iconColor,
-    required Color iconBg,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        onTap: onTap,
         borderRadius: 16.radius,
-        border: Border.all(color: AppColors.gray200),
-        boxShadow: [
-          BoxShadow(
-            color: iconColor.withOpacity(0.05),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBg.withOpacity(0.15),
-              borderRadius: 12.radius,
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          Column(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.gray900,
-                  letterSpacing: -0.4,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: 12.radius,
                 ),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
-              4.height(context),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.gray500,
-                  fontWeight: FontWeight.w500,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ).paddingAll(context, 16),
-    ).onClick(onTap);
+        ),
+      ),
+    );
   }
 
   String _getDaysLeft(String dateStr) {
@@ -487,7 +543,6 @@ class EventDetailsScreen extends StatelessWidget {
       
       if (endStr != null && endStr.isNotEmpty) {
         final end = DateTime.parse(endStr).toLocal();
-        // If same month and year, simplify
         if (start.month == end.month && start.year == end.year) {
           if (start.day == end.day) return startFmt;
           return '${months[start.month - 1]} ${start.day} - ${end.day}, ${start.year}';
@@ -524,7 +579,7 @@ class EventDetailsScreen extends StatelessWidget {
 
     try {
       Position? userPosition;
-      
+
       // Try to get user's current location
       if (kIsWeb) {
         // Web: Use browser geolocation API
@@ -539,7 +594,7 @@ class EventDetailsScreen extends StatelessWidget {
       } else {
         // Mobile: Use permission handler and geolocator
         final permissionStatus = await Permission.location.request();
-        
+
         if (permissionStatus.isGranted) {
           try {
             // Check if location services are enabled
@@ -557,7 +612,7 @@ class EventDetailsScreen extends StatelessWidget {
       }
 
       bool launched = false;
-      
+
       // Web: Directly use web URL (no native apps available)
       if (kIsWeb) {
         try {
@@ -574,7 +629,7 @@ class EventDetailsScreen extends StatelessWidget {
                 '&destination=${event.latitude},${event.longitude}'
                 '&travelmode=driving';
           }
-          
+
           final uri = Uri.parse(mapsUrl);
           // On web, use platformDefault which opens in new tab (more reliable than externalApplication)
           // externalApplication might be blocked by browser pop-up blockers
@@ -598,34 +653,34 @@ class EventDetailsScreen extends StatelessWidget {
           }
         }
       }
-      
+
       // Try different URL schemes based on platform (skip if web, already handled)
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         // Android: Try multiple schemes with error handling
         List<Uri> urisToTry = [];
-        
+
         if (userPosition != null) {
           // Try google.navigation: for turn-by-turn navigation
           urisToTry.add(Uri.parse(
             'google.navigation:q=${event.latitude},${event.longitude}',
           ));
-          
+
           // Try comgooglemaps:// with directions
           urisToTry.add(Uri.parse(
             'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&directionsmode=driving',
           ));
         }
-        
+
         // Try geo: scheme (works with any map app)
         urisToTry.add(Uri.parse(
           'geo:${event.latitude},${event.longitude}?q=${event.latitude},${event.longitude}(${Uri.encodeComponent(event.name)})',
         ));
-        
+
         // Try comgooglemaps:// without directions
         urisToTry.add(Uri.parse(
           'comgooglemaps://?q=${event.latitude},${event.longitude}',
         ));
-        
+
         // Try each URI
         for (final uri in urisToTry) {
           try {
@@ -642,7 +697,7 @@ class EventDetailsScreen extends StatelessWidget {
       } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         // iOS: Try Apple Maps first, then Google Maps
         List<Uri> urisToTry = [];
-        
+
         if (userPosition != null) {
           urisToTry.add(Uri.parse(
             'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&dirflg=d',
@@ -652,12 +707,12 @@ class EventDetailsScreen extends StatelessWidget {
             'http://maps.apple.com/?q=${event.latitude},${event.longitude}',
           ));
         }
-        
+
         // Fallback to Google Maps on iOS
         urisToTry.add(Uri.parse(
           'comgooglemaps://?q=${event.latitude},${event.longitude}',
         ));
-        
+
         for (final uri in urisToTry) {
           try {
             if (await canLaunchUrl(uri)) {
@@ -671,7 +726,7 @@ class EventDetailsScreen extends StatelessWidget {
           }
         }
       }
-      
+
       // Fallback to web URL for all platforms (always works)
       if (!launched) {
         try {
@@ -686,7 +741,7 @@ class EventDetailsScreen extends StatelessWidget {
                 '&destination=${event.latitude},${event.longitude}'
                 '&travelmode=driving';
           }
-          
+
           final uri = Uri.parse(mapsUrl);
           await launchUrl(uri, mode: LaunchMode.externalApplication);
           launched = true;
@@ -694,7 +749,7 @@ class EventDetailsScreen extends StatelessWidget {
           debugPrint('Failed to launch web maps: $e');
         }
       }
-      
+
       if (!launched && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

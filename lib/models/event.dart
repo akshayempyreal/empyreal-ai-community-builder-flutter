@@ -13,6 +13,7 @@ class Event {
   final String planningMode; // 'automated' or 'manual'
   final String status; // 'draft', 'published', 'ongoing', 'completed'
   final String createdAt;
+  final String createdBy;
   final int? attendeeCount;
   final double? latitude;
   final double? longitude;
@@ -32,6 +33,7 @@ class Event {
     required this.planningMode,
     required this.status,
     required this.createdAt,
+    required this.createdBy,
     this.attendeeCount,
     this.latitude,
     this.longitude,
@@ -52,6 +54,7 @@ class Event {
       planningMode: json['planningMode'] as String,
       status: json['status'] as String,
       createdAt: json['createdAt'] as String,
+      createdBy: json['createdBy'] as String? ?? '',
       attendeeCount: json['attendeeCount'] as int?,
       latitude: json['latitude'] as double?,
       longitude: json['longitude'] as double?,
@@ -73,6 +76,7 @@ class Event {
       planningMode: data.agenda.isNotEmpty ? 'automated' : 'manual',
       status: data.isCompleteDetails ? 'published' : 'draft',
       createdAt: data.createdAt,
+      createdBy: data.createdBy,
       attendeeCount: data.membersCount,
       latitude: data.coordinates?.coordinates[1],
       longitude: data.coordinates?.coordinates[0],
@@ -94,6 +98,7 @@ class Event {
       'planningMode': planningMode,
       'status': status,
       'createdAt': createdAt,
+      'createdBy': createdBy,
       'attendeeCount': attendeeCount,
       'latitude': latitude,
       'longitude': longitude,

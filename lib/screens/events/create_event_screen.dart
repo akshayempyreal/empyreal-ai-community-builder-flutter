@@ -133,6 +133,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               planningMode: _planningMode,
               status: 'draft',
               createdAt: data.createdAt,
+              createdBy: widget.user.id,
               attendeeCount: 0,
               latitude: data.coordinates?.coordinates[1],
               longitude: data.coordinates?.coordinates[0],

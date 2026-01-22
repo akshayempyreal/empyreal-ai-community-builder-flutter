@@ -190,6 +190,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         planningMode: 'automated',
         status: 'published',
         createdAt: '2026-01-10',
+        createdBy: '1',
         attendeeCount: 156,
         location: '23.54455-23.555566'
       ),
@@ -205,8 +206,9 @@ class _AppNavigatorState extends State<AppNavigator> {
         planningMode: 'manual',
         status: 'ongoing',
         createdAt: '2026-01-15',
+        createdBy: '1',
         attendeeCount: 48,
-          location: '23.54455-23.555566'
+        location: '23.54455-23.555566'
       ),
     ];
   }
@@ -600,6 +602,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onNavigate: (page) => setState(() => _currentPage = page),
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
+          token: _token,
         );
       
       case 'ai-agenda':
