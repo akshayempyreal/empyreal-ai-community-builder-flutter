@@ -18,7 +18,7 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   /// Android Notification Channel for high-importance notifications
@@ -31,6 +31,8 @@ class NotificationService {
 
   /// Initializes the notification service
   Future<void> initialize() async {
+    if (kIsWeb) return;
+
     // Set the background messaging handler early on
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 

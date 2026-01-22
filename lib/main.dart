@@ -54,27 +54,25 @@ void main() async {
     try {
       await Firebase.initializeApp();
 
-      // Mobile-Only Services (Crashlytics)
-      // These will never be called on Web.
+      // Enable Crashlytics collection
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
-      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+      // Pass all uncaught "fatal" errors from the framework to Crashlytics
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
 
-      debugPrint("Firebase: Initialized for Mobile");
+      // Setup FCM using the new service only on mobile
+      await NotificationService().initialize();
     } catch (e) {
-      debugPrint("Firebase: Mobile Initialization Error: $e");
+      debugPrint('Firebase initialization error: $e');
+      // Continue app execution even if Firebase fails
     }
-  } else {
-    debugPrint("App: Running in Firebase-Free Web Mode");
-  }
-
-  // 2. Notification Service (Strictly Guarded for Mobile)
-  if (!kIsWeb) {
-    final notificationService = NotificationService();
-    await notificationService.initialize();
   }
 
   runApp(const MyApp());
@@ -320,13 +318,10 @@ class _AppNavigatorState extends State<AppNavigator> {
     setState(() {
       _events.add(event);
       _currentEvent = event;
-      if (event.planningMode == 'automated') {
-        _currentPage = 'ai-agenda';
-      } else {
-        _currentPage = 'manual-agenda';
-      }
+      _currentPage = 'manual-agenda';
     });
   }
+
 
   void _handleSelectEvent(Event event) {
     setState(() {
@@ -405,9 +400,10 @@ class _AppNavigatorState extends State<AppNavigator> {
   void _handleSaveAgenda(List<AgendaItem> items) {
     setState(() {
       _agendaItems = items;
-      _currentPage = 'agenda-view';
+      _currentPage = 'dashboard';
     });
   }
+
 
   void _handleAddAttendee(Attendee attendee) {
     setState(() {
@@ -521,7 +517,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         return DashboardScreen(
           key: const ValueKey('dashboard'),
           user: _user!,
-          events: _events,
+          token: _token,
           onCreateEvent: () => setState(() => _currentPage = 'create-event'),
           onSelectEvent: _handleSelectEvent,
           onLogout: _handleLogout,
@@ -592,6 +588,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onCreateEvent: _handleCreateEvent,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
+          token: _token,
         );
       
       case 'event-details':
@@ -634,6 +631,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
+          token: _token,
         );
       
       case 'attendees':
