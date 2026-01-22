@@ -1,3 +1,5 @@
+import 'event_api_models.dart';
+
 class Event {
   final String id;
   final String name;
@@ -15,6 +17,8 @@ class Event {
   final double? latitude;
   final double? longitude;
 
+  final String? image;
+
   Event({
     required this.id,
     required this.name,
@@ -31,6 +35,7 @@ class Event {
     this.attendeeCount,
     this.latitude,
     this.longitude,
+    this.image,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -38,7 +43,7 @@ class Event {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
-      location: json['location'] as String? ?? 'TBD', // Handle existing data
+      location: json['location'] as String? ?? 'TBD',
       type: json['type'] as String,
       date: json['date'] as String,
       endDate: json['endDate'] as String?,
@@ -50,6 +55,28 @@ class Event {
       attendeeCount: json['attendeeCount'] as int?,
       latitude: json['latitude'] as double?,
       longitude: json['longitude'] as double?,
+      image: json['image'] as String?,
+    );
+  }
+
+  factory Event.fromEventData(EventData data) {
+    return Event(
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      location: data.location,
+      type: data.eventType,
+      date: data.startDate,
+      endDate: data.endDate,
+      duration: data.hoursInDay,
+      audienceSize: data.expectedAudienceSize,
+      planningMode: data.agenda.isNotEmpty ? 'automated' : 'manual',
+      status: data.isCompleteDetails ? 'published' : 'draft',
+      createdAt: data.createdAt,
+      attendeeCount: data.membersCount,
+      latitude: data.coordinates?.coordinates[1],
+      longitude: data.coordinates?.coordinates[0],
+      image: data.attachments.isNotEmpty ? data.attachments.first : null,
     );
   }
 
@@ -70,6 +97,7 @@ class Event {
       'attendeeCount': attendeeCount,
       'latitude': latitude,
       'longitude': longitude,
+      'image': image,
     };
   }
 }

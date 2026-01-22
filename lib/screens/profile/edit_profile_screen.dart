@@ -124,30 +124,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 onTap: _pickImage,
                                 child: Stack(
                                   children: [
-                                    Container(
-                                      width: 120,
-                                      height: 120,
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.gray100,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: AppTheme.primaryIndigo, width: 2),
-                                        image: _imageFile != null
-                                            ? DecorationImage(
-                                                image: kIsWeb 
-                                                    ? NetworkImage(_imageFile!.path) as ImageProvider
-                                                    : FileImage(File(_imageFile!.path)),
-                                                fit: BoxFit.cover,
-                                              )
+                                    CircleAvatar(
+                                      radius: 60,
+                                      backgroundColor: AppTheme.primaryIndigo,
+                                      child: CircleAvatar(
+                                        radius: 58,
+                                        backgroundColor: AppTheme.gray100,
+                                        backgroundImage: _imageFile != null
+                                            ? (kIsWeb 
+                                                ? NetworkImage(_imageFile!.path) as ImageProvider
+                                                : FileImage(File(_imageFile!.path)))
                                             : (widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty)
-                                                ? DecorationImage(
-                                                    image: NetworkImage(widget.user.profilePic!.fixImageUrl),
-                                                    fit: BoxFit.cover,
-                                                  )
+                                                ? NetworkImage(widget.user.profilePic!.fixImageUrl)
                                                 : null,
+                                        onBackgroundImageError: (exception, stackTrace) {
+                                          debugPrint('Error loading profile image: $exception');
+                                        },
+                                        child: (_imageFile == null && (widget.user.profilePic == null || widget.user.profilePic!.isEmpty))
+                                            ? const Icon(Icons.person, size: 60, color: AppTheme.gray400)
+                                            : null,
                                       ),
-                                      child: (_imageFile == null && (widget.user.profilePic == null || widget.user.profilePic!.isEmpty))
-                                          ? const Icon(Icons.person, size: 60, color: AppTheme.gray400)
-                                          : null,
                                     ),
                                     Positioned(
                                       bottom: 0,
