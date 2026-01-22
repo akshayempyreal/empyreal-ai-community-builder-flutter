@@ -132,6 +132,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                       backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
                           ? NetworkImage(widget.user.profilePic!.fixImageUrl)
                           : null,
+                      onBackgroundImageError: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
+                          ? (exception, stackTrace) {
+                              debugPrint('Error loading profile image: $exception');
+                            }
+                          : null,
                       child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
                           ? Text(
                               widget.user.name[0].toUpperCase(),

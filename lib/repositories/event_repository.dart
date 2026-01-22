@@ -84,4 +84,25 @@ class EventRepository {
     );
     return CreateEventResponse.fromJson(response.data);
   }
+
+  Future<GenerateAgendaResponse> generateAgenda(String eventId, String token) async {
+    final response = await _apiClient.get(
+      '/api/user/event/generate-agenda/$eventId',
+      headers: {'Authorization': 'Bearer $token'},
+      receiveTimeout: const Duration(minutes: 4),
+    );
+    return GenerateAgendaResponse.fromJson(response.data);
+  }
+
+  Future<SaveAgendaResponse> saveAgenda(String eventId, String agenda, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-agenda',
+      data: {
+        'eventId': eventId,
+        'agenda': agenda,
+      },
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return SaveAgendaResponse.fromJson(response.data);
+  }
 }

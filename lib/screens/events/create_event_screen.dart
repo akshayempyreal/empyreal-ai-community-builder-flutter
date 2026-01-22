@@ -368,14 +368,42 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+              color: AppColors.gray100,
             ),
-            child: Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                onPressed: () => setState(() => _attachments.remove(url)),
-              ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    url,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 100,
+                      height: 100,
+                      color: AppColors.gray200,
+                      child: const Icon(Icons.broken_image_outlined, color: AppColors.gray400),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        color: AppColors.gray200,
+                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      );
+                    },
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                    onPressed: () => setState(() => _attachments.remove(url)),
+                  ),
+                ),
+              ],
             ),
           )),
           if (state is CreateEventFileUploadLoading)

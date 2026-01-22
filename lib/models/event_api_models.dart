@@ -212,3 +212,57 @@ class Coordinates {
     );
   }
 }
+
+class GenerateAgendaResponse {
+  final bool status;
+  final String message;
+  final GenerateAgendaData? data;
+
+  GenerateAgendaResponse({
+    required this.status,
+    required this.message,
+    this.data,
+  });
+
+  factory GenerateAgendaResponse.fromJson(Map<String, dynamic> json) {
+    return GenerateAgendaResponse(
+      status: json['status'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'] != null ? GenerateAgendaData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+class GenerateAgendaData {
+  final String agenda;
+
+  GenerateAgendaData({
+    required this.agenda,
+  });
+
+  factory GenerateAgendaData.fromJson(Map<String, dynamic> json) {
+    return GenerateAgendaData(
+      agenda: json['agenda'] ?? '',
+    );
+  }
+}
+
+class SaveAgendaResponse {
+  final bool status;
+  final String message;
+  final EventData? data;
+
+  SaveAgendaResponse({
+    required this.status,
+    required this.message,
+    this.data,
+  });
+
+  factory SaveAgendaResponse.fromJson(Map<String, dynamic> json) {
+    return SaveAgendaResponse(
+      status: json['status'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'] != null ? EventData.fromJson(json['data']) : null,
+    );
+  }
+}
