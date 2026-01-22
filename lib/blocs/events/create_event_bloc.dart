@@ -12,17 +12,19 @@ class CreateEventBloc extends Bloc<CreateEventEvent, CreateEventState> {
   void _onUpdateDetails(UpdateEventDetails event, Emitter<CreateEventState> emit) {
     final d = event.details;
     emit(state.copyWith(
-      name: d['name'],
-      location: d['location'],
-      description: d['description'],
-      type: d['type'],
-      startDate: d['startDate'],
-      endDate: d['endDate'],
-      duration: d['duration'],
-      audienceSize: d['audienceSize'],
-      planningMode: d['planningMode'],
-      latitude: d['latitude'],
-      longitude: d['longitude'],
+      name: d.containsKey('name') ? d['name'] : state.name,
+      location: d.containsKey('location') ? d['location'] : state.location,
+      description: d.containsKey('description') ? d['description'] : state.description,
+      type: d.containsKey('type') ? d['type'] : state.type,
+      startDate: d.containsKey('startDate') ? d['startDate'] : state.startDate,
+      endDate: d.containsKey('endDate') ? d['endDate'] : state.endDate,
+      startTime: d.containsKey('startTime') ? d['startTime'] : state.startTime,
+      endTime: d.containsKey('endTime') ? d['endTime'] : state.endTime,
+      duration: d.containsKey('duration') ? d['duration'] : state.duration,
+      audienceSize: d.containsKey('audienceSize') ? d['audienceSize'] : state.audienceSize,
+      planningMode: d.containsKey('planningMode') ? d['planningMode'] : state.planningMode,
+      latitude: d.containsKey('latitude') ? d['latitude'] : state.latitude,
+      longitude: d.containsKey('longitude') ? d['longitude'] : state.longitude,
     ));
   }
 

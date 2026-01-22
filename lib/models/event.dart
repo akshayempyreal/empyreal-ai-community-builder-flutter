@@ -19,6 +19,7 @@ class Event {
   final double? longitude;
 
   final String? image;
+  final bool isJoined;
 
   Event({
     required this.id,
@@ -38,6 +39,7 @@ class Event {
     this.latitude,
     this.longitude,
     this.image,
+    this.isJoined = false,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,7 @@ class Event {
       latitude: json['latitude'] as double?,
       longitude: json['longitude'] as double?,
       image: json['image'] as String?,
+      isJoined: json['isJoined'] ?? false,
     );
   }
 
@@ -81,6 +84,7 @@ class Event {
       latitude: data.coordinates?.coordinates[1],
       longitude: data.coordinates?.coordinates[0],
       image: data.attachments.isNotEmpty ? data.attachments.first : null,
+      isJoined: data.isMember,
     );
   }
 
@@ -103,6 +107,7 @@ class Event {
       'latitude': latitude,
       'longitude': longitude,
       'image': image,
+      'isJoined': isJoined,
     };
   }
 }

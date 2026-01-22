@@ -73,6 +73,14 @@ class EventRepository {
     return SaveSessionsResponse.fromJson(response.data);
   }
 
+  Future<CreateEventResponse> joinLeaveEvent(String id, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/join-leave/$id',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
+
   Future<CreateEventResponse> updateEvent(String id, String name, String token) async {
     final response = await _apiClient.post(
       '/api/user/event/update',

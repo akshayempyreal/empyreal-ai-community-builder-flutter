@@ -7,7 +7,13 @@ import '../../models/event.dart';
 import '../../models/agenda_item.dart';
 import '../../models/attendee.dart';
 import '../../widgets/status_badge.dart';
+import '../../repositories/event_repository.dart';
+import '../../services/api_client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../blocs/events/event_actions_bloc.dart';
+import '../../blocs/events/event_actions_event.dart';
+import '../../blocs/events/event_actions_state.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../repositories/event_repository.dart';
@@ -36,6 +42,84 @@ class EventDetailsScreen extends StatefulWidget {
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
 }
+//
+// class _EventDetailsScreenState extends State<EventDetailsScreen> {
+//   late Event _currentEvent;
+//   bool _isLoading = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _currentEvent = widget.event;
+//   }
+//
+//   bool get _isOwner => widget.user.id == _currentEvent.createdBy;
+//
+//   Future<void> _showEditDialog() async {
+//     final nameController = TextEditingController(text: _currentEvent.name);
+//
+//     final result = await showDialog<String>(
+//       context: context,
+//       builder: (context) => AlertDialog(
+//         title: const Text('Edit Event Name'),
+//         content: TextField(
+//           controller: nameController,
+//           decoration: const InputDecoration(
+//             labelText: 'Event Name',
+//             hintText: 'Enter new event name',
+//           ),
+//           autofocus: true,
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () => Navigator.pop(context),
+//             child: const Text('Cancel'),
+//           ),
+//           ElevatedButton(
+//             onPressed: () => Navigator.pop(context, nameController.text),
+//             child: const Text('Save'),
+//           ),
+//         ],
+//       ),
+//     );
+//
+//     if (result != null && result.isNotEmpty && result != _currentEvent.name) {
+//       _updateEventName(result);
+//     }
+//   }
+//
+//   Future<void> _updateEventName(String newName) async {
+//     setState(() => _isLoading = true);
+//     try {
+//       final repository = EventRepository(ApiClient());
+//       final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
+//
+//       if (response.status && response.data != null) {
+//         setState(() {
+//           _currentEvent = Event.fromEventData(response.data!);
+//         });
+//         if (mounted) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(content: Text('Event updated successfully')),
+//           );
+//         }
+//       } else {
+//         throw Exception(response.message);
+//       }
+//     } catch (e) {
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
+//         );
+//       }
+//     } finally {
+//       if (mounted) setState(() => _isLoading = false);
+//     }
+//   }
+//
+//   @override
+//   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+// }
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event _currentEvent;
@@ -117,7 +201,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final colorScheme = theme.colorScheme;
     final horizontalPadding = context.isMobile ? 16.0 : context.width < 900 ? 24.0 : 32.0;
 
-    return Scaffold(
+    return BlocProvider(
+      create: (context) => EventActionsBloc(EventRepository(ApiClient())),
+      child: BlocConsumer<EventActionsBloc, EventActionsState>(
+        listener: (context, state) {
+          if (state is EventJoinLeaveSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.response.message), backgroundColor: Colors.green),
+            );
+            if (state.response.data != null) {
+              setState(() {
+                _currentEvent = Event.fromEventData(state.response.data!);
+              });
+            }
+          } else if (state is EventActionFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            bottomNavigationBar: _buildJoinLeaveBar(context, state),
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
@@ -378,6 +483,59 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
         );
           },
+        ),
+      ),
+    );
+        },
+      ),
+    );
+  }
+
+  Widget _buildJoinLeaveBar(BuildContext context, EventActionsState state) {
+    if (_isOwner) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isJoined = _currentEvent.isJoined;
+    final isLoading = state is EventActionLoading;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: isLoading
+              ? null
+              : () {
+                  context.read<EventActionsBloc>().add(
+                        ToggleJoinLeave(eventId: _currentEvent.id, token: widget.token),
+                      );
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isJoined ? Colors.red.withOpacity(0.1) : theme.primaryColor,
+            foregroundColor: isJoined ? Colors.red : Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            elevation: isJoined ? 0 : 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(
+                  isJoined ? 'Leave Event' : 'Join Event',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
         ),
       ),
     );

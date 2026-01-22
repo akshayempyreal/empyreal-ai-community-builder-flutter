@@ -111,7 +111,7 @@ class _EventCardState extends State<EventCard> {
                         spacing: 12,
                         runSpacing: 8,
                         children: [
-                          _buildCompactInfo(context, Icons.calendar_today_rounded, _formatDate(widget.event.date)),
+                          _buildCompactInfo(context, Icons.calendar_today_rounded, _formatDateRange(widget.event.date, widget.event.endDate)),
                           _buildCompactInfo(context, Icons.timer_rounded, '${widget.event.duration}h/day'),
                           _buildCompactInfo(context, Icons.group_rounded, '${widget.event.attendeeCount ?? 0} members'),
                         ],
@@ -214,13 +214,24 @@ class _EventCardState extends State<EventCard> {
     );
   }
 
-  String _formatDate(String dateStr) {
+  String _formatDateRange(String startStr, String? endStr) {
     try {
-      final date = DateTime.parse(dateStr);
+      final start = DateTime.parse(startStr);
       final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${months[date.month - 1]} ${date.day}';
+      
+      String startFmt = '${months[start.month - 1]} ${start.day}';
+      
+      if (endStr != null && endStr.isNotEmpty) {
+        final end = DateTime.parse(endStr);
+        if (start.month == end.month && start.year == end.year) {
+          if (start.day == end.day) return startFmt;
+          return '${months[start.month - 1]} ${start.day}-${end.day}';
+        }
+        return '$startFmt - ${months[end.month - 1]} ${end.day}';
+      }
+      return startFmt;
     } catch (e) {
-      return dateStr;
+      return startStr;
     }
   }
 }
