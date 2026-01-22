@@ -1,14 +1,13 @@
+import 'package:empyreal_ai_community_builder_flutter/blocs/profile/profile_bloc.dart';
+import 'package:empyreal_ai_community_builder_flutter/blocs/profile/profile_event.dart';
+import 'package:empyreal_ai_community_builder_flutter/blocs/profile/profile_state.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
+import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
+import 'package:empyreal_ai_community_builder_flutter/repositories/auth_repository.dart';
+import 'package:empyreal_ai_community_builder_flutter/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../theme/app_theme.dart';
-import '../../project_helpers.dart';
-import '../../blocs/profile/profile_bloc.dart';
-import '../../blocs/profile/profile_event.dart';
-import '../../blocs/profile/profile_state.dart';
-import '../../repositories/auth_repository.dart';
-import '../../services/api_client.dart';
-import '../../models/auth_models.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ProfileScreen extends StatelessWidget {
   final String token;
@@ -54,7 +53,7 @@ class _ProfileScreenContent extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -122,7 +121,7 @@ class _ProfileScreenContent extends StatelessWidget {
                                   backgroundColor: Colors.white,
                                   child: CircleAvatar(
                                     radius: 56,
-                                    backgroundColor: AppTheme.indigo100,
+                                    backgroundColor: AppColors.indigo100,
                                     backgroundImage: user.profilePic.isNotEmpty 
                                         ? NetworkImage(user.profilePic.fixImageUrl)
                                         : null,
@@ -137,7 +136,7 @@ class _ProfileScreenContent extends StatelessWidget {
                                             style: const TextStyle(
                                               fontSize: 40,
                                               fontWeight: FontWeight.bold,
-                                              color: AppTheme.primaryIndigo,
+                                              color: AppColors.primaryIndigo,
                                             ),
                                           )
                                         : null,
@@ -232,17 +231,17 @@ class _ProfileScreenContent extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppTheme.primaryIndigo.withOpacity(0.1),
+            color: AppColors.primaryIndigo.withOpacity(0.1),
             borderRadius: 8.radius,
           ),
-          child: Icon(icon, color: AppTheme.primaryIndigo, size: 20),
+          child: Icon(icon, color: AppColors.primaryIndigo, size: 20),
         ),
         16.width,
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.gray500)),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.gray900)),
+            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.gray500)),
+            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.gray900)),
           ],
         ),
       ],

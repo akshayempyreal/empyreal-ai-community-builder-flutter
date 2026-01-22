@@ -6,7 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// Top-level background message handler for FCM
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, 
+  // If you're going to use other Firebase services in the background,
   // ensure you call `Firebase.initializeApp()` here as well.
   if (kDebugMode) {
     print("FCM: Handling a background message: ${message.messageId}");
@@ -43,10 +43,10 @@ class NotificationService {
 
     // Initialize local notifications for foreground display
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+
     const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings(
+    DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
@@ -101,7 +101,7 @@ class NotificationService {
       }
 
       RemoteNotification? notification = message.notification;
-      
+
       // If `onMessage` is triggered, we manually show a local notification
       // because FCM does not show UI notifications while the app is in the foreground.
       if (notification != null && !kIsWeb) {

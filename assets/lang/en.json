@@ -1,0 +1,68 @@
+{
+    "common": {
+        "app_name": "AI Event Builder",
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "cancel": "Cancel",
+        "save": "Save",
+        "back": "Back",
+        "next": "Next",
+        "done": "Done",
+        "search": "Search...",
+        "profile": "Profile",
+        "settings": "Settings",
+        "logout": "Logout"
+    },
+    "auth": {
+        "welcome_back": "Welcome Back",
+        "sign_in_desc": "Sign in with your mobile number",
+        "mobile_label": "Mobile Number",
+        "send_otp": "Send OTP",
+        "verify_otp": "Verify OTP",
+        "enter_otp": "Enter OTP",
+        "resend_otp": "Resend OTP",
+        "otp_sent_to": "OTP sent to {mobile}",
+        "logout": "Logout",
+        "profile": "Profile"
+    },
+    "dashboard": {
+        "welcome": "Welcome back, {name}! 👋",
+        "summary": "Here's what's happening with your events",
+        "total_events": "Total Events",
+        "total_events_subtitle": "All time",
+        "active_events": "Active Events",
+        "active_events_subtitle": "Ongoing",
+        "completed_events": "Completed Events",
+        "completed_events_subtitle": "Events",
+        "total_attendees": "Total Attendees",
+        "total_attendees_subtitle": "Registered",
+        "create_event_title": "Create Your Next Event",
+        "create_event_desc": "Use AI to plan your event in minutes",
+        "new_event": "New Event",
+        "your_events": "Your Events"
+    },
+    "events": {
+        "create_title": "Create New Event",
+        "details_step": "Event Details",
+        "planning_step": "Planning Mode",
+        "event_name": "Event Name",
+        "description": "Description",
+        "location": "Location",
+        "event_type": "Event Type",
+        "audience_size": "Expected Audience Size",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "duration": "Duration per Day (hours)",
+        "choose_mode": "Choose Planning Mode",
+        "next_step": "Next Step",
+        "create_btn": "Create Event"
+    },
+    "forms": {
+        "required": "{field} is required",
+        "invalid_email": "Enter a valid email",
+        "invalid_phone": "Enter a valid 10-digit phone number",
+        "min_chars": "{field} must be at least {min} characters",
+        "min_words": "{field} must have at least {min} words"
+    }
+}

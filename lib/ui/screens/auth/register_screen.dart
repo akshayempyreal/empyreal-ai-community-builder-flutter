@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   final Function(String name, String email, String password) onRegister;
@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -78,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           height: 64,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                              colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -96,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.gray900,
+                            color: AppColors.gray900,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -104,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           'Sign up to get started',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.gray600,
+                            color: AppColors.gray600,
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -224,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             const Text(
                               'Already have an account? ',
-                              style: TextStyle(color: AppTheme.gray600),
+                              style: TextStyle(color: AppColors.gray600),
                             ),
                             TextButton(
                               onPressed: widget.onNavigateToLogin,

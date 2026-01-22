@@ -1,15 +1,15 @@
+import 'package:empyreal_ai_community_builder_flutter/blocs/otp/otp_bloc.dart';
+import 'package:empyreal_ai_community_builder_flutter/blocs/otp/otp_event.dart';
+import 'package:empyreal_ai_community_builder_flutter/blocs/otp/otp_state.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/auth_models.dart';
+import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
+import 'package:empyreal_ai_community_builder_flutter/repositories/auth_repository.dart';
+import 'package:empyreal_ai_community_builder_flutter/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
-import '../../theme/app_theme.dart';
-import '../../project_helpers.dart';
-import '../../blocs/otp/otp_bloc.dart';
-import '../../blocs/otp/otp_event.dart';
-import '../../blocs/otp/otp_state.dart';
-import '../../repositories/auth_repository.dart';
-import '../../services/api_client.dart';
+import '../../../core/theme/app_theme.dart';
 
 class OtpScreen extends StatelessWidget {
   final String userId;
@@ -78,7 +78,7 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -127,7 +127,7 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.gray900,
+                            color: AppColors.gray900,
                           ),
                         ).centerAlign,
                         12.height(context),
@@ -136,7 +136,7 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.gray600,
+                            color: AppColors.gray600,
                           ),
                         ).centerAlign,
                         40.height(context),
@@ -154,11 +154,11 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                             textStyle: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.gray900,
+                              color: AppColors.gray900,
                             ),
                             decoration: BoxDecoration(
                               borderRadius: 8.radius,
-                              border: Border.all(color: AppTheme.gray300),
+                              border: Border.all(color: AppColors.gray300),
                             ),
                           ),
                           focusedPinTheme: PinTheme(
@@ -167,11 +167,11 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                             textStyle: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryIndigo,
+                              color: AppColors.primaryIndigo,
                             ),
                             decoration: BoxDecoration(
                               borderRadius: 8.radius,
-                              border: Border.all(color: AppTheme.primaryIndigo, width: 2),
+                              border: Border.all(color: AppColors.primaryIndigo, width: 2),
                             ),
                           ),
                           submittedPinTheme: PinTheme(
@@ -179,8 +179,8 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                             height: 50,
                             decoration: BoxDecoration(
                               borderRadius: 8.radius,
-                              color: AppTheme.primaryIndigo.withOpacity(0.05),
-                              border: Border.all(color: AppTheme.primaryIndigo),
+                              color: AppColors.primaryIndigo.withOpacity(0.05),
+                              border: Border.all(color: AppColors.primaryIndigo),
                             ),
                           ),
                         ),
@@ -224,12 +224,12 @@ class _OtpScreenContentState extends State<_OtpScreenContent> {
                           children: [
                             const Text(
                               "Didn't receive code? ",
-                              style: TextStyle(color: AppTheme.gray600),
+                              style: TextStyle(color: AppColors.gray600),
                             ),
                             const Text(
                               'Resend',
                               style: TextStyle(
-                                color: AppTheme.primaryIndigo,
+                                color: AppColors.primaryIndigo,
                                 fontWeight: FontWeight.bold,
                               ),
                             ).onClick(() {

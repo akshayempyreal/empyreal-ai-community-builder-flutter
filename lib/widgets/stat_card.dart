@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../core/theme/app_theme.dart';
 
 class StatCard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
   final Color iconColor;
-  final String subtitle;
+  final String? subtitle;
 
   const StatCard({
     super.key,
@@ -14,61 +14,73 @@ class StatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.iconColor,
-    required this.subtitle,
+    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+        boxShadow: isDark ? null : [
+          BoxShadow(
+            color: iconColor.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: isDark ? AppColors.slate50 : AppColors.slate900,
+            ),
+          ),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.slate500,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
             Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.gray600,
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.slate400,
+                fontSize: 10,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.gray900,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(icon, size: 16, color: iconColor),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: iconColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
           ],
-        ),
+        ],
       ),
     );
   }

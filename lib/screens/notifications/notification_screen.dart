@@ -1,8 +1,8 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../models/notification.dart';
 import '../../repositories/auth_repository.dart';
 import '../../services/api_client.dart';
-import '../../theme/app_theme.dart';
 import '../../project_helpers.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -91,12 +91,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const Icon(Icons.arrow_back_ios_new, color: AppTheme.gray900, size: 20)
+        leading: const Icon(Icons.arrow_back_ios_new, color: AppColors.gray900, size: 20)
             .paddingAll(context, 8)
             .onClick(widget.onBack),
         title: const Text(
           'Notifications',
-          style: TextStyle(color: AppTheme.gray900, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.gray900, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (_notifications.any((n) => !n.isRead))
@@ -105,7 +105,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: const Text('Mark all as read'),
             ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.primaryIndigo),
+            icon: const Icon(Icons.refresh, color: AppColors.primaryIndigo),
             onPressed: _fetchNotifications,
           ),
         ],
@@ -124,7 +124,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppTheme.red500),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -142,20 +142,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_none, size: 64, color: AppTheme.gray300),
+            Icon(Icons.notifications_none, size: 64, color: AppColors.gray300),
             const SizedBox(height: 16),
             const Text(
               'No notifications yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.gray900,
+                color: AppColors.gray900,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               'We\'ll notify you when something important happens',
-              style: TextStyle(color: AppTheme.gray600),
+              style: TextStyle(color: AppColors.gray600),
             ),
           ],
         ),
@@ -173,11 +173,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: notification.isRead 
-                  ? AppTheme.gray100 
-                  : AppTheme.indigo100,
+                  ? AppColors.gray100
+                  : AppColors.indigo100,
               child: Icon(
                 Icons.notifications, 
-                color: notification.isRead ? AppTheme.gray400 : AppTheme.primaryIndigo,
+                color: notification.isRead ? AppColors.gray400 : AppColors.primaryIndigo,
                 size: 20,
               ),
             ),
@@ -185,7 +185,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               notification.title,
               style: TextStyle(
                 fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
-                color: AppTheme.gray900,
+                color: AppColors.gray900,
               ),
             ),
             subtitle: Column(
@@ -193,12 +193,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
               children: [
                 Text(
                   notification.message,
-                  style: const TextStyle(color: AppTheme.gray600),
+                  style: const TextStyle(color: AppColors.gray600),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   notification.createdAt,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.gray400),
+                  style: const TextStyle(fontSize: 12, color: AppColors.gray400),
                 ),
               ],
             ),

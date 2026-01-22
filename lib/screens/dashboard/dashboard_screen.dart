@@ -1,16 +1,16 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../models/user.dart';
 import '../../models/event.dart';
-import '../../models/event_api_models.dart';
-import '../../theme/app_theme.dart';
-import '../../widgets/stat_card.dart';
-import '../../widgets/event_card.dart';
 import '../../blocs/event_list/event_list_bloc.dart';
 import '../../blocs/event_list/event_list_event.dart';
 import '../../blocs/event_list/event_list_state.dart';
 import '../../repositories/event_repository.dart';
 import '../../services/api_client.dart';
+import '../../widgets/stat_card.dart';
+import '../../widgets/event_card.dart';
 import '../../project_helpers.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BlocProvider(
       create: (context) => EventListBloc(EventRepository(ApiClient()))
         ..add(FetchEventList(
-          request: EventListRequest(page: 1, limit: 10, ownBy: 'all', status: 'upcoming'),
+          request: EventListRequest(page: 1, limit: 10, ownBy: 'all', status: 'published'),
           token: widget.token,
         )),
       child: BlocBuilder<EventListBloc, EventListState>(
@@ -61,209 +61,173 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           final stats = _calculateStats(events);
 
-    return Scaffold(
-      backgroundColor: AppTheme.gray50,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            const Text('AI Event Builder'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_outlined),
-                if (widget.unreadCount > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.red500,
-                        shape: BoxShape.circle,
+          return Scaffold(
+            backgroundColor: AppColors.gray50,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              title: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 14,
-                        minHeight: 14,
-                      ),
-                      child: Text(
-                        widget.unreadCount > 9 ? '9+' : widget.unreadCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
                   ),
-              ],
-            ),
-            onPressed: widget.onNavigateToNotifications,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: PopupMenuButton(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isSmall = MediaQuery.of(context).size.width < 600;
-
-                  Widget avatar = CircleAvatar(
-                    backgroundColor: AppTheme.indigo100,
-                    backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
-                        ? NetworkImage(widget.user.profilePic!.fixImageUrl)
-                        : null,
-                    child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
-                        ? Text(
-                            widget.user.name.firstChar.upper,
-                            style: const TextStyle(color: AppTheme.primaryIndigo),
-                          )
-                        : null,
-                  );
-
-                  if (isSmall) return avatar;
-
-                  return Row(
+                  const SizedBox(width: 12),
+                  const Text('AI Event Builder'),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: Stack(
                     children: [
-                      avatar,
-                      const SizedBox(width: 8),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.user.name,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      const Icon(Icons.notifications_outlined),
+                      if (widget.unreadCount > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 14,
+                              minHeight: 14,
+                            ),
+                            child: Text(
+                              widget.unreadCount > 9 ? '9+' : widget.unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ],
+                        ),
+                    ],
+                  ),
+                  onPressed: widget.onNavigateToNotifications,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: PopupMenuButton(
+                    child: _buildUserAvatar(),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        onTap: widget.onNavigateToProfile,
+                        child: const ListTile(
+                          leading: Icon(Icons.person_outline),
+                          title: Text('Profile'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        onTap: widget.onNavigateToSettings,
+                        child: const ListTile(
+                          leading: Icon(Icons.settings_outlined),
+                          title: Text('Settings'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        onTap: widget.onLogout,
+                        child: const ListTile(
+                          leading: Icon(Icons.logout),
+                          title: Text('Logout'),
+                        ),
                       ),
                     ],
-                  );
-                }
-              ),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  onTap: widget.onNavigateToProfile,
-                  child: const ListTile(
-                    leading: Icon(Icons.person_outline),
-                    title: Text('Profile'),
-                  ),
-                ),
-                PopupMenuItem(
-                  onTap: widget.onNavigateToSettings,
-                  child: const ListTile(
-                    leading: Icon(Icons.settings_outlined),
-                    title: Text('Settings'),
-                  ),
-                ),
-                PopupMenuItem(
-                  onTap: widget.onLogout,
-                  child: const ListTile(
-                    leading: Icon(Icons.logout),
-                    title: Text('Logout'),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome section
-            Text(
-              'Welcome back, ${widget.user.name.split(' ')[0]}! 👋',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.gray900,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Here's what's happening with your events",
-              style: TextStyle(fontSize: 16, color: AppTheme.gray600),
-            ),
-            const SizedBox(height: 32),
-
-                    // Stats grid
-                    _buildStatsGrid(stats),
-                    const SizedBox(height: 32),
-
-                    // Create Event CTA
-                    _buildCreateEventCTA(),
-                    const SizedBox(height: 32),
-
-                    // Events list header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Your Events',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.gray900,
-                          ),
-                        ),
-                        if (isLoading)
-                          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                      ],
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome section
+                  Text(
+                    'Welcome back, ${widget.user.name.split(' ')[0]}! 👋',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.gray900,
                     ),
-                    const SizedBox(height: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Here's what's happening with your events",
+                    style: TextStyle(fontSize: 16, color: AppColors.gray600),
+                  ),
+                  const SizedBox(height: 32),
 
-                    if (state is EventListFailure)
-                      Center(child: Text('Error: ${state.error}', style: const TextStyle(color: Colors.red)))
-                    else if (isLoading && events.isEmpty)
-                      const Center(child: CircularProgressIndicator())
-                    else if (events.isEmpty)
-                      _buildEmptyState()
-                    else
-                      _buildEventsList(events),
-                  ],
-                ),
+                  // Stats grid
+                  _buildStatsGrid(stats),
+                  const SizedBox(height: 32),
+
+                  // Create Event CTA
+                  _buildCreateEventCTA(),
+                  const SizedBox(height: 32),
+
+                  // Events list header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Your Events',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.gray900,
+                        ),
+                      ),
+                      if (isLoading)
+                        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (state is EventListFailure)
+                    Center(child: Text('Error: ${state.error}', style: const TextStyle(color: Colors.red)))
+                  else if (isLoading && events.isEmpty)
+                    const Center(child: CircularProgressIndicator())
+                  else if (events.isEmpty)
+                    _buildEmptyState()
+                  else
+                    _buildEventsList(events),
+                ],
               ),
+            ),
           );
         },
       ),
     );
   }
 
-  Widget avatarWidget() {
+  Widget _buildUserAvatar() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = MediaQuery.of(context).size.width < 600;
 
         Widget avatar = CircleAvatar(
-          backgroundColor: AppTheme.indigo100,
+          backgroundColor: AppColors.indigo100,
           backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
               ? NetworkImage(widget.user.profilePic!.fixImageUrl)
               : null,
           child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
               ? Text(
                   widget.user.name.firstChar.upper,
-                  style: const TextStyle(color: AppTheme.primaryIndigo),
+                  style: const TextStyle(color: AppColors.primaryIndigo),
                 )
               : null,
         );
@@ -274,9 +238,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             avatar,
             const SizedBox(width: 8),
-            Text(
-              widget.user.name,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.user.name,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ],
         );
@@ -303,28 +273,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: 'Total Events',
               value: stats['totalEvents'].toString(),
               icon: Icons.calendar_today,
-              iconColor: AppTheme.gray600,
+              iconColor: AppColors.slate600,
               subtitle: 'All time',
             ),
             StatCard(
               title: 'Active Events',
               value: stats['activeEvents'].toString(),
               icon: Icons.access_time,
-              iconColor: AppTheme.green600,
+              iconColor: AppColors.success,
               subtitle: 'Ongoing',
             ),
             StatCard(
               title: 'Total Attendees',
               value: stats['totalAttendees'].toString(),
               icon: Icons.people,
-              iconColor: AppTheme.gray600,
+              iconColor: AppColors.slate600,
               subtitle: 'Registered',
             ),
             StatCard(
               title: 'Completed',
               value: stats['completedEvents'].toString(),
               icon: Icons.bar_chart,
-              iconColor: AppTheme.primaryPurple,
+              iconColor: AppColors.secondary,
               subtitle: 'Events',
             ),
           ],
@@ -337,7 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+          colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -385,12 +355,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'Create Your Next Event',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
                 'Use AI to plan your event',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
+                style: const TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
           ),
@@ -406,7 +376,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       label: const Text('New Event'),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryIndigo,
+        foregroundColor: AppColors.primaryIndigo,
         minimumSize: const Size(140, 48),
       ),
     );
@@ -419,14 +389,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.calendar_today, size: 48, color: AppTheme.gray400),
+              const Icon(Icons.calendar_today, size: 48, color: AppColors.slate400),
               const SizedBox(height: 16),
               const Text(
                 'No events yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.gray900),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.slate900),
               ),
               const SizedBox(height: 8),
-              const Text('Create your first event to get started', style: TextStyle(color: AppTheme.gray600)),
+              const Text('Create your first event to get started', style: const TextStyle(color: AppColors.slate600)),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: widget.onCreateEvent,
@@ -443,20 +413,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildEventsList(List<Event> events) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth <= 700;
-
-        if (isMobile) {
-          return Column(
-            children: events.map((event) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: EventCard(
-                event: event,
-                onTap: () => widget.onSelectEvent(event),
-              ),
-            )).toList(),
-          );
-        }
-
         final crossAxisCount = constraints.maxWidth > 1200 ? 3 : 2;
 
         return GridView.builder(

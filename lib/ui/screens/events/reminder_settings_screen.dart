@@ -1,8 +1,8 @@
+import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/reminder.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:flutter/material.dart';
-import '../../models/user.dart';
-import '../../models/event.dart';
-import '../../models/reminder.dart';
-import '../../theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ReminderSettingsScreen extends StatelessWidget {
   final Event event;
@@ -38,7 +38,7 @@ class ReminderSettingsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const Text('Reminder Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('${reminders.length} reminders', style: const TextStyle(color: AppTheme.gray600)),
+            Text('${reminders.length} reminders', style: const TextStyle(color: AppColors.gray600)),
           ],
         ),
       ),

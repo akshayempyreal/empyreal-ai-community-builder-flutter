@@ -1,8 +1,8 @@
+import 'package:empyreal_ai_community_builder_flutter/models/agenda_item.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:flutter/material.dart';
-import '../../models/user.dart';
-import '../../models/event.dart';
-import '../../models/agenda_item.dart';
-import '../../theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class AIAgendaBuilderScreen extends StatelessWidget {
   final Event event;
@@ -79,7 +79,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                               'Analyzing event flow',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: AppTheme.blue600,
+                                color: AppColors.info,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -104,13 +104,13 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.indigo100,
+                                    color: AppColors.indigo100,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Text(
                                     '4 NEW',
                                     style: TextStyle(
-                                      color: AppTheme.primaryIndigo,
+                                      color: AppColors.primaryIndigo,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12,
                                     ),
@@ -131,16 +131,16 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                               children: [
                                 Column(
                                   children: [
-                                    Icon(Icons.swipe_left, color: AppTheme.gray400),
+                                    Icon(Icons.swipe_left, color: AppColors.gray400),
                                     SizedBox(height: 4),
-                                    Text('SWIPE LEFT TO SKIP', style: TextStyle(fontSize: 10, color: AppTheme.gray400)),
+                                    Text('SWIPE LEFT TO SKIP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
                                   ],
                                 ),
                                 Column(
                                   children: [
-                                    Icon(Icons.swipe_right, color: AppTheme.gray400),
+                                    Icon(Icons.swipe_right, color: AppColors.gray400),
                                     SizedBox(height: 4),
-                                    Text('SWIPE RIGHT TO KEEP', style: TextStyle(fontSize: 10, color: AppTheme.gray400)),
+                                    Text('SWIPE RIGHT TO KEEP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
                                   ],
                                 ),
                               ],
@@ -174,7 +174,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
             height: 200,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppTheme.blue600.withOpacity(0.1),
+              color: AppColors.info.withOpacity(0.1),
             ),
           ),
           Container(
@@ -182,7 +182,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
             height: 160,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppTheme.blue600.withOpacity(0.2),
+              color: AppColors.info.withOpacity(0.2),
             ),
           ),
           Container(
@@ -190,23 +190,23 @@ class AIAgendaBuilderScreen extends StatelessWidget {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppTheme.blue600.withOpacity(0.3),
+              color: AppColors.info.withOpacity(0.3),
             ),
           ),
           // Core
           Container(
             width: 90,
             height: 90,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppTheme.blue600, AppTheme.indigo700],
+                colors: [AppColors.info, AppColors.indigo100],
               ),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: AppTheme.blue600,
+                  color: AppColors.info,
                   blurRadius: 20,
                   spreadRadius: 2,
                 ),
@@ -238,7 +238,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
               'Overall Completion',
               style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.gray700,
+                color: AppColors.gray700,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -246,7 +246,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
               '65%',
               style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.blue600,
+                color: AppColors.info,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -259,7 +259,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
               height: 8,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppTheme.gray200,
+                color: AppColors.gray200,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -267,7 +267,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
               height: 8,
               width: 220, // 65% approximate width
               decoration: BoxDecoration(
-                color: AppTheme.blue600,
+                color: AppColors.info,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -290,7 +290,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: AppTheme.gray100),
+        border: Border.all(color: AppColors.gray100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,7 +301,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppTheme.indigo100,
+                  color: AppColors.indigo100,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -309,7 +309,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryIndigo,
+                    color: AppColors.primaryIndigo,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -318,7 +318,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                 '14:00 - 15:00',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.gray500,
+                  color: AppColors.gray500,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -339,7 +339,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
             'A hands-on session where attendees collaborate to build complex prompt chains for creative workflows. Includes 15 min Q&A.',
             style: TextStyle(
               fontSize: 14,
-              color: AppTheme.gray600,
+              color: AppColors.gray600,
               height: 1.5,
             ),
           ),
@@ -352,7 +352,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Regenerate'),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: AppTheme.gray50,
+                    backgroundColor: AppColors.gray50,
                     foregroundColor: Colors.black,
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -366,7 +366,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                   icon: const Icon(Icons.check_circle, size: 18),
                   label: const Text('Keep'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.blue600,
+                    backgroundColor: AppColors.info,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -388,7 +388,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: AppTheme.gray600,
+            color: AppColors.gray600,
             letterSpacing: 1.2,
           ),
         ),
@@ -400,11 +400,11 @@ class AIAgendaBuilderScreen extends StatelessWidget {
                 aspectRatio: 1.5,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.gray200,
+                    color: AppColors.gray200,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Center(
-                    child: Icon(Icons.map, size: 32, color: AppTheme.gray400),
+                    child: Icon(Icons.map, size: 32, color: AppColors.gray400),
                   ),
                 ),
               ),
@@ -439,7 +439,7 @@ class AIAgendaBuilderScreen extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AppTheme.gray200)),
+        border: Border(top: BorderSide(color: AppColors.gray200)),
       ),
       child: SafeArea(
         child: Padding(
@@ -464,14 +464,14 @@ class AIAgendaBuilderScreen extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: isActive ? AppTheme.blue600 : AppTheme.gray400,
+          color: isActive ? AppColors.info : AppColors.gray400,
           size: 24,
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: isActive ? AppTheme.blue600 : AppTheme.gray400,
+            color: isActive ? AppColors.info : AppColors.gray400,
             fontSize: 10,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),

@@ -1,29 +1,34 @@
 import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
 import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/notifications/notification_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/settings/settings_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/settings/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
+import 'core/animation/app_animations.dart';
 import 'models/auth_models.dart';
 import 'dart:ui';
 import 'services/notification_service.dart';
-import 'theme/app_theme.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'core/localization/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'models/user.dart';
 import 'models/event.dart';
 import 'models/agenda_item.dart';
 import 'models/attendee.dart';
 import 'models/reminder.dart';
 import 'models/feedback_response.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/otp_screen.dart';
-import 'screens/auth/register_screen.dart';
-import 'screens/profile/profile_screen.dart';
-import 'screens/profile/edit_profile_screen.dart';
-import 'screens/settings/settings_screen.dart';
-import 'screens/settings/webview_screen.dart';
-import 'screens/auth/complete_profile_screen.dart';
-import 'screens/auth/forgot_password_screen.dart';
+import 'ui/screens/auth/login_screen.dart';
+import 'ui/screens/auth/otp_screen.dart';
+import 'ui/screens/auth/register_screen.dart';
+import 'ui/screens/profile/profile_screen.dart';
+import 'ui/screens/profile/edit_profile_screen.dart';
+import 'ui/screens/auth/complete_profile_screen.dart';
+import 'ui/screens/auth/forgot_password_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'repositories/auth_repository.dart';
@@ -31,19 +36,20 @@ import 'services/api_client.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/events/create_event_screen.dart';
 import 'screens/events/event_details_screen.dart';
-import 'screens/events/ai_agenda_builder_screen.dart';
-import 'screens/events/event_agenda_screen.dart';
+import 'ui/screens/events/ai_agenda_builder_screen.dart';
+import 'ui/screens/events/event_agenda_screen.dart';
 import 'screens/events/manual_agenda_editor_screen.dart';
-import 'screens/events/attendee_management_screen.dart';
-import 'screens/events/reminder_settings_screen.dart';
-import 'screens/events/feedback_collection_screen.dart';
-import 'screens/events/feedback_reports_screen.dart';
-import 'screens/notifications/notification_screen.dart';
+import 'ui/screens/events/attendee_management_screen.dart';
+import 'ui/screens/events/reminder_settings_screen.dart';
+import 'ui/screens/events/feedback_collection_screen.dart';
+import 'ui/screens/events/feedback_reports_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase only on mobile platforms (skip on web)
+  // 1. Platform-Based Firebase Isolation
+  // Firebase is REQUIRED ONLY for Mobile (Android / iOS).
+  // Web builds MUST NOT initialize or reference Firebase runtime services.
   if (!kIsWeb) {
     try {
       await Firebase.initializeApp();
@@ -60,7 +66,7 @@ void main() async {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
-      
+
       // Setup FCM using the new service only on mobile
       await NotificationService().initialize();
     } catch (e) {
@@ -80,6 +86,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AI Event Builder',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // Respect system theme
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('hi', ''),
+      ],
       home: const AppNavigator(),
       debugShowCheckedModeBanner: false,
     );
@@ -409,7 +427,11 @@ class _AppNavigatorState extends State<AppNavigator> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: _buildPage(),
+      child: AnimatedSwitcher(
+        duration: AppAnimations.normal,
+        transitionBuilder: AppAnimations.pageTransitionBuilder,
+        child: _buildPage(),
+      ),
     );
   }
 
@@ -455,6 +477,7 @@ class _AppNavigatorState extends State<AppNavigator> {
     switch (_currentPage) {
       case 'login':
         return LoginScreen(
+          key: const ValueKey('login'),
           onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
@@ -462,6 +485,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'otp':
         return OtpScreen(
+          key: const ValueKey('otp'),
           userId: _tempUserId,
           mobileNo: _tempMobileNo,
           onOtpVerified: _handleOtpVerified,
@@ -470,6 +494,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'complete-profile':
         return CompleteProfileScreen(
+          key: const ValueKey('complete-profile'),
           userId: _tempUserId,
           token: _token,
           onProfileCompleted: _handleProfileCompleted,
@@ -477,17 +502,20 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'register':
         return RegisterScreen(
+          key: const ValueKey('register'),
           onRegister: _handleRegister,
           onNavigateToLogin: () => setState(() => _currentPage = 'login'),
         );
       
       case 'forgot-password':
         return ForgotPasswordScreen(
+          key: const ValueKey('forgot-password'),
           onNavigateToLogin: () => setState(() => _currentPage = 'login'),
         );
       
       case 'dashboard':
         return DashboardScreen(
+          key: const ValueKey('dashboard'),
           user: _user!,
           token: _token,
           onCreateEvent: () => setState(() => _currentPage = 'create-event'),
@@ -500,7 +528,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           },
           unreadCount: _unreadNotificationCount,
         );
-      
+
       case 'notifications':
         return NotificationScreen(
           token: _token,
@@ -509,7 +537,7 @@ class _AppNavigatorState extends State<AppNavigator> {
             _fetchUnreadCount();
           },
         );
-      
+
       case 'settings':
         return SettingsScreen(
           onBack: () => setState(() => _currentPage = 'dashboard'),
@@ -518,14 +546,14 @@ class _AppNavigatorState extends State<AppNavigator> {
           onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
           onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
         );
-      
+
       case 'privacy':
         return AppWebViewScreen(
           title: 'Privacy Policy',
           url: '${ApiConstants.baseUrl}/privacy-policy',
           onBack: () => setState(() => _currentPage = 'settings'),
         );
-      
+
       case 'terms':
         return AppWebViewScreen(
           title: 'Terms & Conditions',
@@ -535,6 +563,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'profile':
         return ProfileScreen(
+          key: const ValueKey('profile'),
           token: _token,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           onLogout: _handleLogout,
@@ -546,6 +575,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'edit-profile':
         return EditProfileScreen(
+          key: const ValueKey('edit-profile'),
           user: _user!,
           token: _token,
           onProfileUpdated: _handleProfileUpdated,
@@ -554,6 +584,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'create-event':
         return CreateEventScreen(
+          key: const ValueKey('create-event'),
           onCreateEvent: _handleCreateEvent,
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
@@ -562,6 +593,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'event-details':
         return EventDetailsScreen(
+          key: const ValueKey('event-details'),
           event: _currentEvent!,
           agendaItems: _agendaItems,
           attendees: _attendees,
@@ -572,6 +604,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'ai-agenda':
         return AIAgendaBuilderScreen(
+          key: const ValueKey('ai-agenda'),
           event: _currentEvent!,
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
@@ -580,6 +613,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
       case 'agenda-view':
         return EventAgendaScreen(
+          key: const ValueKey('agenda-view'),
           event: _currentEvent!,
           agendaItems: _agendaItems,
           onBack: () => setState(() => _currentPage = 'event-details'),
@@ -591,6 +625,7 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'manual-agenda':
         return ManualAgendaEditorScreen(
+          key: const ValueKey('manual-agenda'),
           event: _currentEvent!,
           existingAgenda: _agendaItems,
           onSaveAgenda: _handleSaveAgenda,
@@ -601,39 +636,25 @@ class _AppNavigatorState extends State<AppNavigator> {
       
       case 'attendees':
         return AttendeeManagementScreen(
+          key: const ValueKey('attendees'),
           event: _currentEvent!,
           attendees: _attendees,
           onAddAttendee: _handleAddAttendee,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
         );
-      
-      // case 'reminders':
-      //   return ReminderSettingsScreen(
-      //     event: _currentEvent!,
-      //     reminders: _reminders,
-      //     onUpdateReminders: _handleUpdateReminders,
-      //     onBack: () => setState(() => _currentPage = 'event-details'),
-      //     user: _user!,
-      //   );
-      
+
       case 'feedback-collection':
         return FeedbackCollectionScreen(
+          key: const ValueKey('feedback-collection'),
           event: _currentEvent!,
           onSubmitFeedback: _handleSubmitFeedback,
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
-      
-      // case 'feedback-reports':
-      //   return FeedbackReportsScreen(
-      //     event: _currentEvent!,
-      //     feedbackResponses: _feedbackResponses,
-      //     onBack: () => setState(() => _currentPage = 'event-details'),
-      //     user: _user!,
-      //   );
-      
+
       default:
         return LoginScreen(
+          key: const ValueKey('login-default'),
           onLoginSuccess: _handleLoginSuccess,
           onNavigateToRegister: () => setState(() => _currentPage = 'register'),
           onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),

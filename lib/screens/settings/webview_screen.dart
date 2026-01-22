@@ -1,6 +1,6 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../../theme/app_theme.dart';
 import '../../project_helpers.dart';
 
 class AppWebViewScreen extends StatefulWidget {
@@ -85,7 +85,7 @@ class _AppWebViewScreenState extends State<AppWebViewScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -134,14 +134,14 @@ class _AppWebViewScreenState extends State<AppWebViewScreen> {
                         LinearProgressIndicator(
                           value: _progress > 0 ? _progress : null,
                           backgroundColor: Colors.transparent,
-                          color: AppTheme.primaryIndigo,
+                          color: AppColors.primaryIndigo,
                           minHeight: 3,
                         ),
                         // Keep a very subtle center loader if progress isn't moving
                         if (_progress < 0.1)
                           const Center(
                             child: CircularProgressIndicator(
-                              color: AppTheme.primaryIndigo,
+                              color: AppColors.primaryIndigo,
                               strokeWidth: 2,
                             ),
                           ),

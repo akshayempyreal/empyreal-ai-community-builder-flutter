@@ -1,3 +1,4 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
@@ -6,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/user.dart';
 import '../../models/event.dart';
 import '../../models/event_api_models.dart';
-import '../../theme/app_theme.dart';
 import '../../blocs/create_event/create_event_bloc.dart';
 import '../../blocs/create_event/create_event_event.dart';
 import '../../blocs/create_event/create_event_state.dart';
@@ -153,7 +153,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         },
         builder: (context, state) {
           return Scaffold(
-            backgroundColor: AppTheme.gray50,
+            backgroundColor: AppColors.gray50,
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -231,7 +231,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               children: [
                 const Text('Create New Event', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text('Enter the basic details of your event', style: TextStyle(color: AppTheme.gray600)),
+                const Text('Enter the basic details of your event', style: TextStyle(color: AppColors.gray600)),
                 const SizedBox(height: 24),
                 
                 TextFormField(
@@ -381,7 +381,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             Container(
               width: 100,
               margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(color: AppTheme.gray100, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: AppColors.gray100, borderRadius: BorderRadius.circular(12)),
               child: const Center(child: CircularProgressIndicator()),
             ),
           GestureDetector(
@@ -389,15 +389,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             child: Container(
               width: 100,
               decoration: BoxDecoration(
-                color: AppTheme.indigo100.withOpacity(0.3),
+                color: AppColors.indigo100.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.primaryIndigo),
+                border: Border.all(color: AppColors.primaryIndigo),
               ),
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_photo_alternate_outlined, color: AppTheme.primaryIndigo),
-                  Text('Add Photo', style: TextStyle(fontSize: 12, color: AppTheme.primaryIndigo)),
+                  Icon(Icons.add_photo_alternate_outlined, color: AppColors.primaryIndigo),
+                  Text('Add Photo', style: TextStyle(fontSize: 12, color: AppColors.primaryIndigo)),
                 ],
               ),
             ),

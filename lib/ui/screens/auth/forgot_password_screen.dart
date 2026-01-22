@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final VoidCallback onNavigateToLogin;
@@ -40,7 +40,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -77,12 +77,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: AppTheme.indigo100,
+              color: AppColors.indigo100,
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.lock_reset,
-              color: AppTheme.primaryIndigo,
+              color: AppColors.primaryIndigo,
               size: 32,
             ),
           ),
@@ -94,7 +94,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: AppTheme.gray900,
+              color: AppColors.gray900,
             ),
           ),
           const SizedBox(height: 8),
@@ -102,7 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             'Enter your email address and we\'ll send you a link to reset your password.',
             style: TextStyle(
               fontSize: 14,
-              color: AppTheme.gray600,
+              color: AppColors.gray600,
             ),
           ),
           const SizedBox(height: 32),
@@ -160,12 +160,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: AppTheme.statusOngoing,
+            color: AppColors.statusOngoing,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.check_circle_outline,
-            color: AppTheme.statusOngoingText,
+            color: AppColors.statusOngoingText,
             size: 32,
           ),
         ),
@@ -177,7 +177,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppTheme.gray900,
+            color: AppColors.gray900,
           ),
         ),
         const SizedBox(height: 8),
@@ -185,7 +185,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           'We\'ve sent a password reset link to ${_emailController.text}',
           style: const TextStyle(
             fontSize: 14,
-            color: AppTheme.gray600,
+            color: AppColors.gray600,
           ),
         ),
         const SizedBox(height: 32),
