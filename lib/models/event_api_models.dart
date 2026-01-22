@@ -86,6 +86,7 @@ class EventData {
   final String updatedAt;
   final String createdAt;
   final int membersCount;
+  final bool isMember;
 
   EventData({
     required this.id,
@@ -106,6 +107,7 @@ class EventData {
     required this.updatedAt,
     required this.createdAt,
     this.membersCount = 0,
+    this.isMember = false,
   });
 
   factory EventData.fromJson(Map<String, dynamic> json) {
@@ -128,6 +130,7 @@ class EventData {
       updatedAt: json['updatedAt'] ?? '',
       createdAt: json['createdAt'] ?? '',
       membersCount: json['membersCount'] ?? 0,
+      isMember: json['isMember'] ?? false,
     );
   }
 }
