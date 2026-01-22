@@ -212,13 +212,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         );
 
         final startDateField = _buildDateField(
-          label: 'Start Date *',
+          label: 'Start Date & Time *',
           selectedDate: _startDate,
           onDateSelected: (date) => setState(() => _startDate = date),
         );
 
         final endDateField = _buildDateField(
-          label: 'End Date *',
+          label: 'End Date & Time *',
           selectedDate: _endDate,
           onDateSelected: (date) => setState(() => _endDate = date),
           firstDate: _startDate,
@@ -318,20 +318,64 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       validator: (value) => selectedDate == null ? 'Required' : null,
       builder: (state) => InkWell(
         onTap: () async {
+          // First show date picker
           final date = await showDatePicker(
             context: context,
             initialDate: selectedDate ?? firstDate ?? DateTime.now(),
             firstDate: firstDate ?? DateTime.now(),
             lastDate: DateTime.now().add(const Duration(days: 365)),
           );
-          if (date != null) {
-            onDateSelected(date);
-            state.didChange(date);
+          
+          if (date != null && mounted) {
+            // Store the selected date
+            final selectedDateValue = date;
+            
+            // Wait for the date picker to fully close
+            await Future.delayed(const Duration(milliseconds: 300));
+            
+            // Check if still mounted
+            if (!mounted) return;
+            
+            // Show time picker immediately after date selection
+            final time = await showTimePicker(
+              context: context,
+              initialTime: selectedDate != null
+                  ? TimeOfDay.fromDateTime(selectedDate)
+                  : const TimeOfDay(hour: 9, minute: 0),
+              helpText: label.contains('Start') ? 'SELECT START TIME' : 'SELECT END TIME',
+            );
+            
+            // Only proceed if time was selected and widget is still mounted
+            if (time != null && mounted) {
+              // Combine date and time into a single DateTime
+              final dateTime = DateTime(
+                selectedDateValue.year,
+                selectedDateValue.month,
+                selectedDateValue.day,
+                time.hour,
+                time.minute,
+              );
+              
+              onDateSelected(dateTime);
+              state.didChange(dateTime);
+            }
+            // Note: If user cancels time picker, nothing is saved (both date and time must be selected)
           }
         },
         child: InputDecorator(
-          decoration: InputDecoration(labelText: label, errorText: state.errorText),
-          child: Text(selectedDate == null ? 'Select date' : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+          decoration: InputDecoration(
+            labelText: label,
+            errorText: state.errorText,
+            prefixIcon: const Icon(Icons.calendar_month_outlined, size: 20),
+          ),
+          child: Text(
+            selectedDate == null 
+                ? 'Select date & time' 
+                : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year} ${selectedDate.hour.toString().padLeft(2, '0')}:${selectedDate.minute.toString().padLeft(2, '0')}',
+            style: TextStyle(
+              color: selectedDate == null ? AppColors.gray400 : AppColors.gray900,
+            ),
+          ),
         ),
       ),
     );

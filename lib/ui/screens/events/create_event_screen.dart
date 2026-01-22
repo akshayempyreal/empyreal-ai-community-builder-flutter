@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import 'dart:convert';
 import '../../../core/animation/app_animations.dart';
 import '../../../models/user.dart';
@@ -168,27 +170,6 @@ class _CreateEventViewState extends State<_CreateEventView> {
     }
   }
 
-  Future<void> _showTimePickerAfterDate(bool isStart) async {
-    // Small delay to ensure the DatePicker dialog is fully dismissed
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-
-    final currentState = context.read<CreateEventBloc>().state;
-    final initialTime = (isStart ? currentState.startTime : currentState.endTime) ?? 
-                        TimeOfDay(hour: isStart ? 9 : 17, minute: 0);
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-      helpText: isStart ? 'SELECT START TIME' : 'SELECT END TIME',
-    );
-
-    if (time != null && mounted) {
-      context.read<CreateEventBloc>().add(UpdateEventDetails({
-        isStart ? 'startTime' : 'endTime': time,
-      }));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -339,39 +320,47 @@ class _CreateEventViewState extends State<_CreateEventView> {
         );
 
         final startDateField = _buildDatePicker(
-          label: 'Start Date *',
-          selectedDate: state.startDate,
-          onDateSelected: (date) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'startDate': date}));
-          },
-          onPostSelect: () => _showTimePickerAfterDate(true),
-        );
-
-        final startTimeField = _buildTimePicker(
-          label: 'Start Time *',
-          selectedTime: state.startTime,
-          enabled: state.startDate != null,
-          onTimeSelected: (time) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'startTime': time}));
+          label: 'Start Date & Time *',
+          selectedDate: state.startDate != null && state.startTime != null
+              ? DateTime(
+                  state.startDate!.year,
+                  state.startDate!.month,
+                  state.startDate!.day,
+                  state.startTime!.hour,
+                  state.startTime!.minute,
+                )
+              : state.startDate,
+          onDateSelected: (dateTime) {
+            // Extract date and time from the combined DateTime
+            final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+            final time = TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+            context.read<CreateEventBloc>().add(UpdateEventDetails({
+              'startDate': date,
+              'startTime': time,
+            }));
           },
         );
 
         final endDateField = _buildDatePicker(
-          label: 'End Date *',
-          selectedDate: state.endDate,
+          label: 'End Date & Time *',
+          selectedDate: state.endDate != null && state.endTime != null
+              ? DateTime(
+                  state.endDate!.year,
+                  state.endDate!.month,
+                  state.endDate!.day,
+                  state.endTime!.hour,
+                  state.endTime!.minute,
+                )
+              : state.endDate,
           firstDate: state.startDate,
-          onDateSelected: (date) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'endDate': date}));
-          },
-          onPostSelect: () => _showTimePickerAfterDate(false),
-        );
-
-        final endTimeField = _buildTimePicker(
-          label: 'End Time *',
-          selectedTime: state.endTime,
-          enabled: state.endDate != null,
-          onTimeSelected: (time) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'endTime': time}));
+          onDateSelected: (dateTime) {
+            // Extract date and time from the combined DateTime
+            final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+            final time = TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+            context.read<CreateEventBloc>().add(UpdateEventDetails({
+              'endDate': date,
+              'endTime': time,
+            }));
           },
         );
 
@@ -427,35 +416,13 @@ class _CreateEventViewState extends State<_CreateEventView> {
                 // Start Date & Time
                 Text('Start Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                if (isSmall) ...[
-                  startDateField,
-                  const SizedBox(height: 8),
-                  startTimeField,
-                ] else
-                  Row(
-                    children: [
-                      Expanded(flex: 3, child: startDateField),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 2, child: startTimeField),
-                    ],
-                  ),
+                startDateField,
                 const SizedBox(height: 16),
 
                 // End Date & Time
                 Text('End Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                if (isSmall) ...[
-                  endDateField,
-                  const SizedBox(height: 8),
-                  endTimeField,
-                ] else
-                  Row(
-                    children: [
-                      Expanded(flex: 3, child: endDateField),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 2, child: endTimeField),
-                    ],
-                  ),
+                endDateField,
                 const SizedBox(height: 24),
                 
                 TextFormField(
@@ -516,23 +483,59 @@ class _CreateEventViewState extends State<_CreateEventView> {
       validator: (value) => value == null ? 'Required' : null,
       builder: (state) {
         return InkWell(
-          onTap: () {
-            showDatePicker(
+          onTap: () async {
+            // First show date picker
+            final date = await showDatePicker(
               context: context,
               initialDate: selectedDate ?? firstDate ?? DateTime.now(),
               firstDate: firstDate ?? DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365)),
-            ).then((date) {
-              if (date != null && mounted) {
-                onDateSelected(date);
-                state.didChange(date);
-                
-                // Automatically trigger the next step (e.g. time picker) if provided
-                if (onPostSelect != null) {
-                  onPostSelect();
-                }
-              }
-            });
+            );
+            
+            if (date != null && mounted) {
+              // Store the selected date and context
+              final selectedDateValue = date;
+              final currentContext = context;
+              
+              // Use SchedulerBinding to ensure date picker is fully dismissed
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                // Use Timer to delay showing time picker
+                Timer(const Duration(milliseconds: 300), () {
+                  if (!mounted) return;
+                  
+                  // Show time picker
+                  showTimePicker(
+                    context: currentContext,
+                    initialTime: selectedDate != null && selectedDate!.hour > 0
+                        ? TimeOfDay.fromDateTime(selectedDate!)
+                        : const TimeOfDay(hour: 9, minute: 0),
+                    helpText: label.contains('Start') ? 'SELECT START TIME' : 'SELECT END TIME',
+                  ).then((time) {
+                    // Only proceed if time was selected and widget is still mounted
+                    if (time != null && mounted) {
+                      // Combine date and time into a single DateTime
+                      final dateTime = DateTime(
+                        selectedDateValue.year,
+                        selectedDateValue.month,
+                        selectedDateValue.day,
+                        time.hour,
+                        time.minute,
+                      );
+                      
+                      // Update the form state
+                      onDateSelected(dateTime);
+                      state.didChange(dateTime);
+                      
+                      // Trigger any post-selection callback if provided
+                      if (onPostSelect != null) {
+                        onPostSelect();
+                      }
+                    }
+                    // Note: If user cancels time picker, nothing is saved (both date and time must be selected)
+                  });
+                });
+              });
+            }
           },
           child: InputDecorator(
             decoration: InputDecoration(
@@ -542,8 +545,8 @@ class _CreateEventViewState extends State<_CreateEventView> {
             ),
             child: Text(
               selectedDate == null 
-                  ? 'Select date' 
-                  : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                  ? 'Select date & time' 
+                  : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year} ${selectedDate.hour.toString().padLeft(2, '0')}:${selectedDate.minute.toString().padLeft(2, '0')}',
               style: TextStyle(
                 color: selectedDate == null ? AppColors.gray400 : AppColors.gray900,
               ),
