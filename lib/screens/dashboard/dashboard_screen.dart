@@ -529,48 +529,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final colorScheme = theme.colorScheme;
     final isSelected = _selectedOwnership == ownership;
 
-    return GestureDetector(
-      onTap: () {
-        if (!isSelected) {
-          setState(() {
-            _selectedOwnership = ownership;
-            _isLoadingMore = false; // Reset loading state when changing filter
-          });
-          final bloc = context.read<EventListBloc>();
-          _eventListBloc = bloc; // Update stored reference
-          bloc.add(FetchEventList(
-                request: EventListRequest(
-                  page: 1,
-                  limit: 10,
-                  ownBy: ownership,
-                  status: null, // Pass null to send empty string ""
-                ),
-                token: widget.token,
-              ));
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
-        child: Text(
-          title,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (!isSelected && _eventListBloc != null) {
+            setState(() {
+              _selectedOwnership = ownership;
+              _isLoadingMore = false; // Reset loading state when changing filter
+            });
+            _eventListBloc!.add(FetchEventList(
+              request: EventListRequest(
+                page: 1,
+                limit: 10,
+                ownBy: ownership,
+                status: null, // Pass null to send empty string ""
+              ),
+              token: widget.token,
+            ));
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? colorScheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Text(
+            title,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
         ),
       ),
@@ -613,32 +615,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final hasMore = state is EventListSuccess && state.hasMore;
     final isLoadingMore = _isLoadingMore || (state is EventListLoading && events.isNotEmpty);
     
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: events.length + (hasMore || isLoadingMore ? 1 : 0),
-      separatorBuilder: (context, index) {
-        if (index >= events.length) return const SizedBox.shrink();
-        return const SizedBox(height: 16);
-      },
-      itemBuilder: (context, index) {
-        // Show loading indicator at the end if there are more pages
-        if (index == events.length) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(
+    // Use MediaQuery to get screen width for responsive layout
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Determine columns based on screen width
+    int crossAxisCount;
+    double childAspectRatio;
+    double spacing;
+    
+    if (screenWidth > 1200) {
+      // Large desktop: 3 columns
+      crossAxisCount = 3;
+      childAspectRatio = 0.88; // Increased to better fit card content
+      spacing = 20;
+    } else if (screenWidth > 800) {
+      // Tablet/Medium desktop: 2 columns
+      crossAxisCount = 2;
+      childAspectRatio = 0.9; // Increased to better fit card content
+      spacing = 16;
+    } else {
+      // Mobile: 1 column (list view)
+      crossAxisCount = 1;
+      childAspectRatio = 1.0;
+      spacing = 16;
+    }
+    
+    // Use GridView for multi-column layout, ListView for single column
+    if (crossAxisCount == 1) {
+      return ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: events.length + (hasMore || isLoadingMore ? 1 : 0),
+        separatorBuilder: (context, index) {
+          if (index >= events.length) return const SizedBox.shrink();
+          return SizedBox(height: spacing);
+        },
+        itemBuilder: (context, index) {
+          if (index == events.length) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: isLoadingMore
+                    ? const CircularProgressIndicator()
+                    : const SizedBox.shrink(),
+              ),
+            );
+          }
+          return EventCard(
+            event: events[index],
+            onTap: () => widget.onSelectEvent(events[index]),
+          );
+        },
+      );
+    } else {
+      // Grid layout for web/desktop
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          childAspectRatio: childAspectRatio,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+        ),
+        padding: EdgeInsets.zero, // Remove default padding
+        itemCount: events.length + (hasMore || isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == events.length) {
+            return Center(
               child: isLoadingMore
                   ? const CircularProgressIndicator()
                   : const SizedBox.shrink(),
-            ),
+            );
+          }
+          return EventCard(
+            event: events[index],
+            onTap: () => widget.onSelectEvent(events[index]),
           );
-        }
-        
-        return EventCard(
-          event: events[index],
-          onTap: () => widget.onSelectEvent(events[index]),
-        );
-      },
-    );
+        },
+      );
+    }
   }
 }

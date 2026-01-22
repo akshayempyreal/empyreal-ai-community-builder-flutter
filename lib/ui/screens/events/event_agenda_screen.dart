@@ -65,17 +65,10 @@ class _EventAgendaScreenState extends State<EventAgendaScreen> with SingleTicker
           children: [
             _buildHeader(context, isDark),
             Expanded(
-              child: widget.agendaItems.isEmpty 
-                ? _buildEmptyState(context, isDark)
-                : _buildAgendaList(context, isDark),
+              child: _buildAgendaContent(context, isDark),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: widget.onEditAgenda,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.auto_awesome, color: Colors.white),
       ),
     );
   }
@@ -107,7 +100,9 @@ class _EventAgendaScreenState extends State<EventAgendaScreen> with SingleTicker
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '${widget.agendaItems.length} items scheduled',
+                  widget.event.agenda != null && widget.event.agenda!.isNotEmpty
+                      ? 'Agenda available'
+                      : '${widget.agendaItems.length} items scheduled',
                   style: const TextStyle(color: AppColors.slate500),
                 ),
               ],
@@ -147,6 +142,91 @@ class _EventAgendaScreenState extends State<EventAgendaScreen> with SingleTicker
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAgendaContent(BuildContext context, bool isDark) {
+    // If event has agenda text, display it; otherwise show agenda items
+    if (widget.event.agenda != null && widget.event.agenda!.isNotEmpty) {
+      return _buildAgendaText(context, isDark);
+    } else if (widget.agendaItems.isEmpty) {
+      return _buildEmptyState(context, isDark);
+    } else {
+      return _buildAgendaList(context, isDark);
+    }
+  }
+
+  Widget _buildAgendaText(BuildContext context, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.description, color: AppColors.primary, size: 24),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Event Agenda',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+              // Display agenda text with basic formatting
+              _buildFormattedAgendaText(widget.event.agenda!),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormattedAgendaText(String agendaText) {
+    // Simple text formatting - can be enhanced with markdown package if needed
+    final lines = agendaText.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        if (line.trim().isEmpty) {
+          return const SizedBox(height: 12);
+        }
+        
+        // Check if line is a heading (starts with # or **)
+        final isHeading = line.trim().startsWith('#') || 
+                         (line.trim().startsWith('**') && line.trim().endsWith('**'));
+        final isBold = line.trim().startsWith('**') && line.trim().endsWith('**');
+        
+        // Remove markdown syntax for display
+        String displayText = line;
+        if (displayText.startsWith('#')) {
+          displayText = displayText.replaceFirst(RegExp(r'^#+\s*'), '');
+        }
+        if (displayText.startsWith('**') && displayText.endsWith('**')) {
+          displayText = displayText.substring(2, displayText.length - 2);
+        }
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            displayText,
+            style: TextStyle(
+              fontSize: isHeading ? 18 : 16,
+              fontWeight: isHeading || isBold ? FontWeight.bold : FontWeight.normal,
+              height: 1.6,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 

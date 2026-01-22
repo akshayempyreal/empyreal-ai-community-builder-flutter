@@ -20,6 +20,7 @@ class Event {
 
   final String? image;
   final bool isJoined;
+  final String? agenda; // Agenda text from API
 
   Event({
     required this.id,
@@ -40,6 +41,7 @@ class Event {
     this.longitude,
     this.image,
     this.isJoined = false,
+    this.agenda,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -62,6 +64,7 @@ class Event {
       longitude: json['longitude'] as double?,
       image: json['image'] as String?,
       isJoined: json['isJoined'] ?? false,
+      agenda: json['agenda'] as String?,
     );
   }
 
@@ -85,6 +88,7 @@ class Event {
       longitude: data.coordinates?.coordinates[0],
       image: data.attachments.isNotEmpty ? data.attachments.first : null,
       isJoined: data.isMember,
+      agenda: data.agenda.isNotEmpty ? data.agenda : null,
     );
   }
 
@@ -108,6 +112,7 @@ class Event {
       'longitude': longitude,
       'image': image,
       'isJoined': isJoined,
+      'agenda': agenda,
     };
   }
 }

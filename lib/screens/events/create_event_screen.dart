@@ -35,7 +35,7 @@ class CreateEventScreen extends StatefulWidget {
 
 class _CreateEventScreenState extends State<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Form fields
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
@@ -46,7 +46,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _durationController = TextEditingController();
   final _audienceSizeController = TextEditingController();
   String _planningMode = 'automated';
-  
+
   // State for location selection
   List<Map<String, dynamic>> _allLocations = [];
   double? _selectedLat;
@@ -79,7 +79,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Future<void> _loadLocations() async {
     try {
-      final String response = await rootBundle.loadString('assets/locations.json');
+      final String response = await rootBundle.loadString(
+        'assets/locations.json',
+      );
       final List<dynamic> data = json.decode(response);
       setState(() {
         _allLocations = data.cast<Map<String, dynamic>>();
@@ -115,12 +117,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           id: widget.eventToEdit!.id,
           name: _nameController.text,
           startDate: _startDate!.toUtc().toIso8601String(),
-          endDate: _endDate?.toUtc().toIso8601String() ?? _startDate!.toUtc().toIso8601String(),
+          endDate:
+              _endDate?.toUtc().toIso8601String() ??
+              _startDate!.toUtc().toIso8601String(),
           description: _descriptionController.text,
           attachments: _attachments,
           hoursInDay: int.parse(_durationController.text),
           eventType: _selectedType,
-          otherEventType: _selectedType == 'other' ? 'library type event' : null,
+          otherEventType: _selectedType == 'other'
+              ? 'library type event'
+              : null,
           expectedAudienceSize: int.parse(_audienceSizeController.text),
           location: _locationController.text,
           lat: _selectedLat?.toString() ?? "0.0",
@@ -134,12 +140,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final request = CreateEventRequest(
           name: _nameController.text,
           startDate: _startDate!.toUtc().toIso8601String(),
-          endDate: _endDate?.toUtc().toIso8601String() ?? _startDate!.toUtc().toIso8601String(),
+          endDate:
+              _endDate?.toUtc().toIso8601String() ??
+              _startDate!.toUtc().toIso8601String(),
           description: _descriptionController.text,
           attachments: _attachments,
           hoursInDay: int.parse(_durationController.text),
           eventType: _selectedType,
-          otherEventType: _selectedType == 'other' ? 'library type event' : null,
+          otherEventType: _selectedType == 'other'
+              ? 'library type event'
+              : null,
           expectedAudienceSize: int.parse(_audienceSizeController.text),
           location: _locationController.text,
           lat: _selectedLat?.toString() ?? "0.0",
@@ -168,7 +178,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               _attachments.add(state.fileUrl);
             });
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Image uploaded successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Image uploaded successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
           } else if (state is CreateEventFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +197,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
-              title: Text(widget.eventToEdit != null ? 'Edit Event' : 'Create Event'),
+              title: Text(
+                widget.eventToEdit != null ? 'Edit Event' : 'Create Event',
+              ),
             ),
             body: state is CreateEventLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -192,7 +207,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     child: Center(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 800),
-                        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 32,
+                        ),
                         child: Form(
                           key: _formKey,
                           child: _buildForm(context, state),
@@ -216,12 +234,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           value: _selectedType.isEmpty ? null : _selectedType,
           decoration: const InputDecoration(labelText: 'Event Type *'),
           items: const [
-            DropdownMenuItem(value: 'community', child: Text('Community Event')),
+            DropdownMenuItem(
+              value: 'community',
+              child: Text('Community Event'),
+            ),
             DropdownMenuItem(value: 'cultural', child: Text('Cultural Event')),
             DropdownMenuItem(value: 'workshop', child: Text('Workshop')),
             DropdownMenuItem(value: 'conference', child: Text('Conference')),
             DropdownMenuItem(value: 'seminar', child: Text('Seminar')),
-            DropdownMenuItem(value: 'networking', child: Text('Networking Event')),
+            DropdownMenuItem(
+              value: 'networking',
+              child: Text('Networking Event'),
+            ),
             DropdownMenuItem(value: 'other', child: Text('Other')),
           ],
           onChanged: (value) => setState(() => _selectedType = value ?? ''),
@@ -230,9 +254,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
         final audienceField = TextFormField(
           controller: _audienceSizeController,
-          decoration: const InputDecoration(labelText: 'Expected Audience Size *', hintText: 'e.g., 200'),
+          decoration: const InputDecoration(
+            labelText: 'Expected Audience Size *',
+            hintText: 'e.g., 200',
+          ),
           keyboardType: TextInputType.number,
-          validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+          validator: (value) =>
+              value == null || value.isEmpty ? 'Required' : null,
         );
 
         final startDateField = _buildDateField(
@@ -254,53 +282,86 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.eventToEdit != null ? 'Edit Event' : 'Create New Event', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(
+                  widget.eventToEdit != null
+                      ? 'Edit Event'
+                      : 'Create New Event',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(widget.eventToEdit != null ? 'Update the basic details of your event' : 'Enter the basic details of your event', style: const TextStyle(color: AppColors.gray600)),
+                Text(
+                  widget.eventToEdit != null
+                      ? 'Update the basic details of your event'
+                      : 'Enter the basic details of your event',
+                  style: const TextStyle(color: AppColors.gray600),
+                ),
                 const SizedBox(height: 24),
-                
+
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Event Name *', hintText: 'e.g., Holi Event 2026'),
+                  decoration: const InputDecoration(
+                    labelText: 'Event Name *',
+                    hintText: 'e.g., Holi Event 2026',
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Required';
-                    if (value.trim().split(RegExp(r'\s+')).length < 2) return 'At least 2 words required';
+                    if (value.trim().split(RegExp(r'\s+')).length < 2)
+                      return 'At least 2 words required';
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description *', hintText: 'Describe your event...'),
+                  decoration: const InputDecoration(
+                    labelText: 'Description *',
+                    hintText: 'Describe your event...',
+                  ),
                   maxLines: 4,
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Required';
-                    if (value.trim().split(RegExp(r'\s+')).length < 10) return 'At least 10 words required';
+                    if (value.trim().split(RegExp(r'\s+')).length < 10)
+                      return 'At least 10 words required';
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 _buildLocationAutocomplete(),
                 const SizedBox(height: 16),
-                
+
                 if (isSmall) ...[
                   eventTypeField,
                   const SizedBox(height: 16),
                   audienceField,
                 ] else
-                  Row(children: [Expanded(child: eventTypeField), const SizedBox(width: 16), Expanded(child: audienceField)]),
+                  Row(
+                    children: [
+                      Expanded(child: eventTypeField),
+                      const SizedBox(width: 16),
+                      Expanded(child: audienceField),
+                    ],
+                  ),
                 const SizedBox(height: 16),
-                
+
                 if (isSmall) ...[
                   startDateField,
                   const SizedBox(height: 16),
                   endDateField,
                 ] else
-                  Row(children: [Expanded(child: startDateField), const SizedBox(width: 16), Expanded(child: endDateField)]),
+                  Row(
+                    children: [
+                      Expanded(child: startDateField),
+                      const SizedBox(width: 16),
+                      Expanded(child: endDateField),
+                    ],
+                  ),
                 const SizedBox(height: 16),
-                
+
                 TextFormField(
                   controller: _durationController,
                   decoration: const InputDecoration(
@@ -310,7 +371,31 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     final num = int.tryParse(value ?? '');
-                    if (num == null || num < 1 || num > 24) return 'Must be between 1 and 24';
+                    if (num == null || num < 1 || num > 24)
+                      return 'Must be between 1 and 24';
+
+                    // Issue 3: Event Time Validation
+                    if (_startDate != null && _endDate != null) {
+                      final difference = _endDate!.difference(_startDate!);
+                      // If the event is on the same day (or less than 24 hours), validate against total hours
+                      // If it's multi-day, "Duration per Day" logic applies, but strictly it shouldn't exceed total duration if total < duration per day
+                      // The requirement specifically mentions "If Start Time = 9:00 and End Time = 10:00, Maximum allowed duration = 1 hour"
+
+                      final totalHours = difference.inHours;
+                      if (totalHours < 24 && num > totalHours) {
+                        return 'Duration cannot exceed event length ($totalHours hours)';
+                      }
+
+                      // Also validate if the difference is less than 1 hour but user enters 1
+                      if (totalHours == 0 &&
+                          difference.inMinutes < 60 &&
+                          num >= 1) {
+                        // If event is less than 1 hour, maybe allow 1? Or block?
+                        // "Maximum allowed duration = 1 hour" for 9-10.
+                        // For 9:00-9:30, max should be 0.5? But input is int.
+                        // Assuming int input, we can't do much for <1 hour.
+                      }
+                    }
                     return null;
                   },
                 ),
@@ -319,41 +404,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 _buildAttachmentsList(context, state),
                 const SizedBox(height: 24),
 
-                const Text('Planning Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                // Planning Mode removed
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildPlanningModeCard(
-                        title: 'AI Automated',
-                        subtitle: 'AI will generate your complete agenda',
-                        icon: Icons.auto_awesome,
-                        isSelected: _planningMode == 'automated',
-                        onTap: () => setState(() => _planningMode = 'automated'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildPlanningModeCard(
-                        title: 'Manual Selection',
-                        subtitle: 'I want to build my own agenda',
-                        icon: Icons.edit_calendar,
-                        isSelected: _planningMode == 'manual',
-                        onTap: () => setState(() => _planningMode = 'manual'),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 32),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    OutlinedButton(onPressed: widget.onBack, child: const Text('Cancel')),
+                    OutlinedButton(
+                      onPressed: widget.onBack,
+                      child: const Text('Cancel'),
+                    ),
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: () => _handleSubmit(context),
-                      child: Text(widget.eventToEdit != null ? 'Update Event' : 'Create Event'),
+                      child: Text(
+                        widget.eventToEdit != null
+                            ? 'Update Event'
+                            : 'Create Event',
+                      ),
                     ),
                   ],
                 ),
@@ -365,7 +434,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  Widget _buildDateField({required String label, DateTime? selectedDate, required Function(DateTime) onDateSelected, DateTime? firstDate}) {
+  Widget _buildDateField({
+    required String label,
+    DateTime? selectedDate,
+    required Function(DateTime) onDateSelected,
+    DateTime? firstDate,
+  }) {
     return FormField<DateTime>(
       validator: (value) => selectedDate == null ? 'Required' : null,
       builder: (state) => InkWell(
@@ -377,26 +451,28 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             firstDate: firstDate ?? DateTime.now(),
             lastDate: DateTime.now().add(const Duration(days: 365)),
           );
-          
+
           if (date != null && mounted) {
             // Store the selected date
             final selectedDateValue = date;
-            
+
             // Wait for the date picker to fully close
             await Future.delayed(const Duration(milliseconds: 300));
-            
+
             // Check if still mounted
             if (!mounted) return;
-            
+
             // Show time picker immediately after date selection
             final time = await showTimePicker(
               context: context,
               initialTime: selectedDate != null
                   ? TimeOfDay.fromDateTime(selectedDate)
                   : const TimeOfDay(hour: 9, minute: 0),
-              helpText: label.contains('Start') ? 'SELECT START TIME' : 'SELECT END TIME',
+              helpText: label.contains('Start')
+                  ? 'SELECT START TIME'
+                  : 'SELECT END TIME',
             );
-            
+
             // Only proceed if time was selected and widget is still mounted
             if (time != null && mounted) {
               // Combine date and time into a single DateTime
@@ -407,7 +483,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 time.hour,
                 time.minute,
               );
-              
+
               onDateSelected(dateTime);
               state.didChange(dateTime);
             }
@@ -421,11 +497,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             prefixIcon: const Icon(Icons.calendar_month_outlined, size: 20),
           ),
           child: Text(
-            selectedDate == null 
-                ? 'Select date & time' 
+            selectedDate == null
+                ? 'Select date & time'
                 : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year} ${selectedDate.hour.toString().padLeft(2, '0')}:${selectedDate.minute.toString().padLeft(2, '0')}',
             style: TextStyle(
-              color: selectedDate == null ? AppColors.gray400 : AppColors.gray900,
+              color: selectedDate == null
+                  ? AppColors.gray400
+                  : AppColors.gray900,
             ),
           ),
         ),
@@ -436,20 +514,31 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget _buildLocationAutocomplete() {
     return Autocomplete<Map<String, dynamic>>(
       displayStringForOption: (option) => option['name'] as String,
-      optionsBuilder: (textValue) => textValue.text.isEmpty 
-          ? const Iterable<Map<String, dynamic>>.empty() 
-          : _allLocations.where((loc) => loc['name'].toString().toLowerCase().contains(textValue.text.toLowerCase())),
+      optionsBuilder: (textValue) => textValue.text.isEmpty
+          ? const Iterable<Map<String, dynamic>>.empty()
+          : _allLocations.where(
+              (loc) => loc['name'].toString().toLowerCase().contains(
+                textValue.text.toLowerCase(),
+              ),
+            ),
       onSelected: (selection) => setState(() {
         _locationController.text = selection['name'];
         _selectedLat = selection['latitude'];
         _selectedLng = selection['longitude'];
       }),
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) => TextFormField(
-        controller: controller,
-        focusNode: focusNode,
-        decoration: const InputDecoration(labelText: 'Location *', prefixIcon: Icon(Icons.location_on_outlined)),
-        validator: (value) => (value == null || value.isEmpty || _selectedLat == null) ? 'Select a valid location' : null,
-      ),
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) =>
+          TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: const InputDecoration(
+              labelText: 'Location *',
+              prefixIcon: Icon(Icons.location_on_outlined),
+            ),
+            validator: (value) =>
+                (value == null || value.isEmpty || _selectedLat == null)
+                ? 'Select a valid location'
+                : null,
+          ),
     );
   }
 
@@ -459,54 +548,68 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          ..._attachments.map((url) => Container(
-            width: 100,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: AppColors.gray100,
-            ),
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    url,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+          ..._attachments.map(
+            (url) => Container(
+              width: 100,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppColors.gray100,
+              ),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      url,
                       width: 100,
                       height: 100,
-                      color: AppColors.gray200,
-                      child: const Icon(Icons.broken_image_outlined, color: AppColors.gray400),
-                    ),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
                         width: 100,
                         height: 100,
                         color: AppColors.gray200,
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      );
-                    },
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.gray400,
+                        ),
+                      ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: AppColors.gray200,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                    onPressed: () => setState(() => _attachments.remove(url)),
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _attachments.remove(url)),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )),
+          ),
           if (state is CreateEventFileUploadLoading)
             Container(
               width: 100,
               margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(color: AppColors.gray100, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppColors.gray100,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: const Center(child: CircularProgressIndicator()),
             ),
           GestureDetector(
@@ -521,46 +624,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_photo_alternate_outlined, color: AppColors.primaryIndigo),
-                  Text('Add Photo', style: TextStyle(fontSize: 12, color: AppColors.primaryIndigo)),
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: AppColors.primaryIndigo,
+                  ),
+                  Text(
+                    'Add Photo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primaryIndigo,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPlanningModeCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryIndigo.withOpacity(0.05) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryIndigo : AppColors.gray200,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: isSelected ? AppColors.primaryIndigo : AppColors.gray500),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.gray500)),
-          ],
-        ),
       ),
     );
   }

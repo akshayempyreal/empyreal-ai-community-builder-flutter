@@ -1,5 +1,5 @@
 import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
-import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/notifications/notification_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/settings_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/webview_screen.dart';
@@ -90,8 +90,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'EvoMeet',
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system, // Respect system theme
+      themeMode: ThemeMode.light, // Force light mode (white theme) only
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -580,6 +579,34 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
 
       case 'privacy':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/privacy-policy');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening privacy policy: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
         return AppWebViewScreen(
           title: 'Privacy Policy',
           url: '${ApiConstants.baseUrl}/privacy-policy',
@@ -587,6 +614,34 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
 
       case 'terms':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/terms-and-conditions');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening terms: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
         return AppWebViewScreen(
           title: 'Terms & Conditions',
           url: '${ApiConstants.baseUrl}/terms-and-conditions',

@@ -20,22 +20,52 @@ class AppWebViewScreen extends StatefulWidget {
 }
 
 class _AppWebViewScreenState extends State<AppWebViewScreen> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) {
+    // On web, automatically open in new tab
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (mounted) {
+          try {
+            final uri = Uri.parse(widget.url);
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(
+                uri,
+                mode: LaunchMode.externalApplication,
+              );
+            } else {
+              // Fallback: try to open in same window
+              await launchUrl(uri, mode: LaunchMode.platformDefault);
+            }
+            // Navigate back after opening
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) widget.onBack();
+            });
+          } catch (e) {
+            debugPrint('Error launching URL: $e');
+            // Still navigate back even if launch fails
+            if (mounted) widget.onBack();
+          }
+        }
+      });
+    } else {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setNavigationDelegate(
           NavigationDelegate(
             onPageStarted: (String url) {
-              setState(() => _isLoading = true);
+              if (mounted) {
+                setState(() => _isLoading = true);
+              }
             },
             onPageFinished: (String url) {
-              setState(() => _isLoading = false);
+              if (mounted) {
+                setState(() => _isLoading = false);
+              }
             },
           ),
         )
@@ -55,41 +85,31 @@ class _AppWebViewScreenState extends State<AppWebViewScreen> {
       ),
       body: kIsWeb 
         ? _buildWebFallback()
-        : Stack(
-            children: [
-              WebViewWidget(controller: _controller),
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator()),
-            ],
-          ),
+        : _controller != null
+          ? Stack(
+              children: [
+                WebViewWidget(controller: _controller!),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator()),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator()),
     );
   }
 
   Widget _buildWebFallback() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.open_in_browser, size: 64, color: Colors.blue),
-            const SizedBox(height: 24),
-            const Text(
-              'External Link',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Please open the ${widget.title} in a new tab for the best experience.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => launchUrl(Uri.parse(widget.url)),
-              child: const Text('Open in Browser'),
-            ),
-          ],
-        ),
+    // Show loading while opening in new tab
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 24),
+          Text(
+            'Opening in new tab...',
+            style: TextStyle(fontSize: 16),
+          ),
+        ],
       ),
     );
   }

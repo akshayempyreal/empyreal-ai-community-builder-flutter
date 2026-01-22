@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:empyreal_ai_community_builder_flutter/core/platform/image_helper.dart';
 import 'package:empyreal_ai_community_builder_flutter/blocs/complete_profile/complete_profile_bloc.dart';
 import 'package:empyreal_ai_community_builder_flutter/blocs/complete_profile/complete_profile_event.dart';
 import 'package:empyreal_ai_community_builder_flutter/blocs/complete_profile/complete_profile_state.dart';
@@ -40,6 +40,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         _imageFile = pickedFile;
       });
     }
+  }
+
+  ImageProvider _getImageProvider(String path) {
+    return getImageProvider(path);
   }
 
   @override
@@ -113,9 +117,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                             ),
                                             image: _imageFile != null
                                                 ? DecorationImage(
-                                                    image: kIsWeb 
-                                                        ? NetworkImage(_imageFile!.path) as ImageProvider
-                                                        : FileImage(File(_imageFile!.path)),
+                                                    image: _getImageProvider(_imageFile!.path),
                                                     fit: BoxFit.cover,
                                                   )
                                                 : null,

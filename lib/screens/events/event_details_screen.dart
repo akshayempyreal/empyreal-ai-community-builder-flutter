@@ -192,7 +192,29 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
       if (response.status && response.data != null) {
         setState(() {
-          _currentEvent = Event.fromEventData(response.data!);
+          final updatedEvent = Event.fromEventData(response.data!);
+          // Preserve agenda if it exists
+          _currentEvent = Event(
+            id: updatedEvent.id,
+            name: updatedEvent.name,
+            description: updatedEvent.description,
+            location: updatedEvent.location,
+            type: updatedEvent.type,
+            date: updatedEvent.date,
+            endDate: updatedEvent.endDate,
+            duration: updatedEvent.duration,
+            audienceSize: updatedEvent.audienceSize,
+            planningMode: updatedEvent.planningMode,
+            status: updatedEvent.status,
+            createdAt: updatedEvent.createdAt,
+            createdBy: updatedEvent.createdBy,
+            attendeeCount: updatedEvent.attendeeCount,
+            latitude: updatedEvent.latitude,
+            longitude: updatedEvent.longitude,
+            image: updatedEvent.image,
+            isJoined: updatedEvent.isJoined,
+            agenda: response.data!.agenda.isNotEmpty ? response.data!.agenda : _currentEvent.agenda,
+          );
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -292,6 +314,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   image: serverData.attachments.isNotEmpty ? serverData.attachments.first : _currentEvent.image,
                   // Always update join status from server
                   isJoined: serverData.isMember,
+                  // Preserve agenda if server doesn't provide it or update if server has a new one
+                  agenda: serverData.agenda.isNotEmpty ? serverData.agenda : _currentEvent.agenda,
                 );
               });
             } else {
@@ -345,6 +369,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 longitude: _currentEvent.longitude,
                 image: _currentEvent.image,
                 isJoined: previousIsJoined,
+                agenda: _currentEvent.agenda, // Preserve agenda
               );
             });
             
@@ -579,14 +604,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               Icons.person_add_rounded,
                               Colors.green,
                             ),
-                            const SizedBox(width: 12),
-                            _buildStatBadge(
-                              context,
-                              _currentEvent.planningMode == 'automated' ? 'AI' : 'Manual',
-                              'Mode',
-                              _currentEvent.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
-                              colorScheme.secondary,
-                            ),
                           ],
                         ),
                       ).paddingHorizontal(context, 4),
@@ -609,7 +626,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           _buildActionCard(
                             context,
                             title: 'Agenda',
-                            subtitle: '${widget.agendaItems.length} items',
+                            subtitle: _currentEvent.agenda != null && _currentEvent.agenda!.isNotEmpty
+                                ? '1 item'
+                                : widget.agendaItems.isNotEmpty
+                                    ? '${widget.agendaItems.length} items'
+                                    : 'No agenda',
                             icon: Icons.list_alt,
                             iconColor: colorScheme.primary,
                             onTap: () => widget.onNavigate('agenda-view'),
@@ -706,6 +727,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       longitude: _currentEvent.longitude,
                       image: _currentEvent.image,
                       isJoined: newIsJoined,
+                      agenda: _currentEvent.agenda, // Preserve agenda
                     );
                   });
                   

@@ -43,9 +43,12 @@ class _EventCardState extends State<EventCard> {
                 ? (constraints.maxHeight * 0.4).clamp(100.0, 160.0) 
                 : 140.0;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            return SizedBox(
+              height: constraints.maxHeight > 0 ? constraints.maxHeight : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max, // Fill available space in grid
+                children: [
                 // Event Image or Placeholder
                 SizedBox(
                   height: imageHeight,
@@ -54,12 +57,13 @@ class _EventCardState extends State<EventCard> {
                 ),
 
                 // Content Area
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       // Header: Status and Type
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,9 +164,11 @@ class _EventCardState extends State<EventCard> {
                         ],
                       ),
                     ],
+                    ),
                   ),
                 ),
-              ],
+                ],
+              ),
             );
           },
         ),
