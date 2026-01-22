@@ -160,6 +160,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                   onPressed: state is CompleteProfileLoading
                                       ? null
                                       : () {
+                                          FocusScope.of(context).unfocus();
                                           if (_formKey.currentState!.validate()) {
                                             context.read<CompleteProfileBloc>().add(
                                                   ProfileSubmitted(

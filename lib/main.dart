@@ -1,3 +1,5 @@
+import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -48,7 +50,7 @@ void main() async {
   if (!kIsWeb) {
     try {
       await Firebase.initializeApp();
-      
+
       // Mobile-Only Services (Crashlytics)
       // These will never be called on Web.
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
@@ -57,7 +59,7 @@ void main() async {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
-      
+
       debugPrint("Firebase: Initialized for Mobile");
     } catch (e) {
       debugPrint("Firebase: Mobile Initialization Error: $e");
@@ -121,6 +123,7 @@ class _AppNavigatorState extends State<AppNavigator> {
   List<Attendee> _attendees = [];
   List<Reminder> _reminders = [];
   List<FeedbackResponse> _feedbackResponses = [];
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -152,9 +155,24 @@ class _AppNavigatorState extends State<AppNavigator> {
           _user = User.fromJson(decodedUser);
           _currentPage = 'dashboard';
         });
+        _fetchUnreadCount();
       }
     } catch (e) {
       debugPrint('Error checking login status: $e');
+    }
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    if (_token.isEmpty) return;
+    try {
+      final response = await AuthRepository(ApiClient()).getUnreadCount(_token);
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = response.unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching unread count: $e');
     }
   }
 
@@ -443,6 +461,10 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'feedback-reports':
         case 'profile':
         case 'edit-profile':
+        case 'settings':
+        case 'privacy':
+        case 'terms':
+        case 'notifications':
           _currentPage = 'dashboard';
           break;
         default:
@@ -501,6 +523,43 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSelectEvent: _handleSelectEvent,
           onLogout: _handleLogout,
           onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+          onNavigateToNotifications: () async {
+            setState(() => _currentPage = 'notifications');
+          },
+          unreadCount: _unreadNotificationCount,
+        );
+
+      case 'notifications':
+        return NotificationScreen(
+          token: _token,
+          onBack: () {
+            setState(() => _currentPage = 'dashboard');
+            _fetchUnreadCount();
+          },
+        );
+
+      case 'settings':
+        return SettingsScreen(
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          onLogout: _handleLogout,
+          onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+          onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+        );
+
+      case 'privacy':
+        return AppWebViewScreen(
+          title: 'Privacy Policy',
+          url: '${ApiConstants.baseUrl}/privacy-policy',
+          onBack: () => setState(() => _currentPage = 'settings'),
+        );
+
+      case 'terms':
+        return AppWebViewScreen(
+          title: 'Terms & Conditions',
+          url: '${ApiConstants.baseUrl}/terms-and-conditions',
+          onBack: () => setState(() => _currentPage = 'settings'),
         );
 
       case 'profile':
@@ -583,7 +642,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
         );
-      
+
       case 'feedback-collection':
         return FeedbackCollectionScreen(
           key: const ValueKey('feedback-collection'),
@@ -591,7 +650,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSubmitFeedback: _handleSubmitFeedback,
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
-      
+
       default:
         return LoginScreen(
           key: const ValueKey('login-default'),

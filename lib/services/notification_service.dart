@@ -19,7 +19,7 @@ class NotificationService {
   NotificationService._internal();
 
   bool _initialized = false;
-  
+
   // We avoid creating these as fields to prevent static initialization on Web
   // final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
@@ -35,7 +35,7 @@ class NotificationService {
     try {
       // Create the Android notification channel
       final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-      
+
       const channel = AndroidNotificationChannel(
         'high_importance_channel',
         'High Importance Notifications',
@@ -65,7 +65,7 @@ class NotificationService {
 
       // Setup FCM
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-      
+
       final fcm = FirebaseMessaging.instance;
       await fcm.requestPermission(alert: true, badge: true, sound: true);
 
