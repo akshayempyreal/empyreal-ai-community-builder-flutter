@@ -1,8 +1,9 @@
 import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
-import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/notifications/notification_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/settings_screen.dart';
 import 'package:empyreal_ai_community_builder_flutter/screens/settings/webview_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/ui/screens/events/generated_agenda_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -43,6 +44,9 @@ import 'ui/screens/events/attendee_management_screen.dart';
 import 'ui/screens/events/reminder_settings_screen.dart';
 import 'ui/screens/events/feedback_collection_screen.dart';
 import 'ui/screens/events/feedback_reports_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'blocs/attendee/attendee_bloc.dart';
+import 'repositories/event_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,10 +88,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Event Builder',
+      title: 'EvoMeet',
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system, // Respect system theme
+      themeMode: ThemeMode.light, // Force light mode (white theme) only
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -125,6 +128,31 @@ class _AppNavigatorState extends State<AppNavigator> {
   List<Reminder> _reminders = [];
   List<FeedbackResponse> _feedbackResponses = [];
   int _unreadNotificationCount = 0;
+  String? _generatedAgendaText; // Store generated agenda text
+  
+  void _safeNavigateToDashboard() {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _currentPage = 'dashboard';
+        _generatedAgendaText = null; // Clear generated agenda
+      });
+    } catch (e) {
+      debugPrint('Error navigating to dashboard: $e');
+    }
+  }
+  
+  void _navigateToGeneratedAgenda(String agendaText) {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _generatedAgendaText = agendaText;
+        _currentPage = 'generated-agenda';
+      });
+    } catch (e) {
+      debugPrint('Error navigating to generated agenda: $e');
+    }
+  }
 
   @override
   void initState() {
@@ -190,6 +218,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         planningMode: 'automated',
         status: 'published',
         createdAt: '2026-01-10',
+        createdBy: '1',
         attendeeCount: 156,
         location: '23.54455-23.555566'
       ),
@@ -205,8 +234,9 @@ class _AppNavigatorState extends State<AppNavigator> {
         planningMode: 'manual',
         status: 'ongoing',
         createdAt: '2026-01-15',
+        createdBy: '1',
         attendeeCount: 48,
-          location: '23.54455-23.555566'
+        location: '23.54455-23.555566'
       ),
     ];
   }
@@ -454,6 +484,7 @@ class _AppNavigatorState extends State<AppNavigator> {
         case 'ai-agenda':
         case 'manual-agenda':
         case 'agenda-view':
+        case 'generated-agenda':
         case 'attendees':
         case 'reminders':
         case 'feedback-collection':
@@ -548,6 +579,34 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
 
       case 'privacy':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/privacy-policy');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening privacy policy: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
         return AppWebViewScreen(
           title: 'Privacy Policy',
           url: '${ApiConstants.baseUrl}/privacy-policy',
@@ -555,6 +614,34 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
 
       case 'terms':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/terms-and-conditions');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening terms: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
         return AppWebViewScreen(
           title: 'Terms & Conditions',
           url: '${ApiConstants.baseUrl}/terms-and-conditions',
@@ -591,6 +678,25 @@ class _AppNavigatorState extends State<AppNavigator> {
           token: _token,
         );
       
+      case 'edit-event':
+        return CreateEventScreen(
+          key: const ValueKey('edit-event'),
+          onCreateEvent: (updatedEvent) {
+            setState(() {
+              final index = _events.indexWhere((e) => e.id == updatedEvent.id);
+              if (index != -1) {
+                _events[index] = updatedEvent;
+              }
+              _currentEvent = updatedEvent;
+              _currentPage = 'manual-agenda'; // Go to agenda flow just like create
+            });
+          },
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+          token: _token,
+          eventToEdit: _currentEvent,
+        );
+      
       case 'event-details':
         return EventDetailsScreen(
           key: const ValueKey('event-details'),
@@ -600,6 +706,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           onNavigate: (page) => setState(() => _currentPage = page),
           onBack: () => setState(() => _currentPage = 'dashboard'),
           user: _user!,
+          token: _token,
         );
       
       case 'ai-agenda':
@@ -609,6 +716,9 @@ class _AppNavigatorState extends State<AppNavigator> {
           onSaveAgenda: _handleSaveAgenda,
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
+          token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
         );
 
       case 'agenda-view':
@@ -632,23 +742,56 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'event-details'),
           user: _user!,
           token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
+          isEditMode: _agendaItems.isNotEmpty, // Edit mode if agenda already exists
+        );
+      
+      case 'generated-agenda':
+        if (_generatedAgendaText == null || _currentEvent == null) {
+          // Fallback to dashboard if data is missing
+          return DashboardScreen(
+            key: const ValueKey('dashboard-fallback'),
+            user: _user!,
+            token: _token,
+            onCreateEvent: () => setState(() => _currentPage = 'create-event'),
+            onSelectEvent: _handleSelectEvent,
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+            onNavigateToNotifications: () async {
+              setState(() => _currentPage = 'notifications');
+            },
+            unreadCount: _unreadNotificationCount,
+          );
+        }
+        return GeneratedAgendaScreen(
+          key: const ValueKey('generated-agenda'),
+          event: _currentEvent!,
+          agendaText: _generatedAgendaText!,
+          user: _user!,
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'manual-agenda'),
+          onSaveAndRedirect: _safeNavigateToDashboard,
         );
       
       case 'attendees':
-        return AttendeeManagementScreen(
-          key: const ValueKey('attendees'),
-          event: _currentEvent!,
-          attendees: _attendees,
-          onAddAttendee: _handleAddAttendee,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
+        return BlocProvider(
+          create: (context) => AttendeeBloc(EventRepository(ApiClient())),
+          child: AttendeeManagementScreen(
+            key: const ValueKey('attendees'),
+            event: _currentEvent!,
+            onBack: () => setState(() => _currentPage = 'event-details'),
+            user: _user!,
+            token: _token,
+          ),
         );
 
       case 'feedback-collection':
         return FeedbackCollectionScreen(
           key: const ValueKey('feedback-collection'),
           event: _currentEvent!,
-          onSubmitFeedback: _handleSubmitFeedback,
+          token: _token,
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
 

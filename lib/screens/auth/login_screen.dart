@@ -119,21 +119,35 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                         children: [
                           // Logo
                           Container(
-                            width: 64,
-                            height: 64,
+                            width: 72,
+                            height: 72,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.primaryIndigo,
-                                  AppColors.primaryPurple,
-                                ],
-                              ),
                               borderRadius: 16.radius,
                             ),
-                            child: const Icon(
-                              Icons.calendar_today,
-                              color: Colors.white,
-                              size: 32,
+                            child: ClipRRect(
+                              borderRadius: 16.radius,
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          AppColors.primaryIndigo,
+                                          AppColors.primaryPurple,
+                                        ],
+                                      ),
+                                      borderRadius: 16.radius,
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_today,
+                                      color: Colors.white,
+                                      size: 32,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ).centerAlign,
                           24.height(context),

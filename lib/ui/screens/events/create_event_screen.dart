@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import 'dart:convert';
 import '../../../core/animation/app_animations.dart';
 import '../../../models/user.dart';
@@ -65,6 +67,8 @@ class _CreateEventViewState extends State<_CreateEventView> {
   final _durationController = TextEditingController();
   final _audienceSizeController = TextEditingController();
   
+  // Time pickers - removed local state in favor of BLoC state
+
   List<Map<String, dynamic>> _allLocations = [];
 
   @override
@@ -105,6 +109,8 @@ class _CreateEventViewState extends State<_CreateEventView> {
       'type': state.type,
       'startDate': state.startDate,
       'endDate': state.endDate,
+      'startTime': state.startTime,
+      'endTime': state.endTime,
       'planningMode': state.planningMode,
       'latitude': state.latitude,
       'longitude': state.longitude,
@@ -113,28 +119,57 @@ class _CreateEventViewState extends State<_CreateEventView> {
 
   void _handleSubmit(CreateEventState state) {
     if (_formKey.currentState!.validate()) {
-      final event = Event(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text,
-        description: _descriptionController.text,
-        location: _locationController.text,
-        type: state.type,
-        date: state.startDate!.toIso8601String().split('T')[0],
-        endDate: state.endDate?.toIso8601String().split('T')[0],
-        duration: int.parse(_durationController.text),
-        audienceSize: _audienceSizeController.text.isNotEmpty 
-            ? int.parse(_audienceSizeController.text) 
-            : null,
-        planningMode: state.planningMode,
-        status: 'draft',
-        createdAt: DateTime.now().toIso8601String(),
-        attendeeCount: 0,
-        latitude: state.latitude,
-        longitude: state.longitude,
-      );
+        // Combine date and time into full DateTime objects
+        final startDateTime = DateTime(
+          state.startDate!.year,
+          state.startDate!.month,
+          state.startDate!.day,
+          state.startTime?.hour ?? 0,
+          state.startTime?.minute ?? 0,
+        );
+        final endDateTime = DateTime(
+          state.endDate!.year,
+          state.endDate!.month,
+          state.endDate!.day,
+          state.endTime?.hour ?? 0,
+          state.endTime?.minute ?? 0,
+        );
+        
+        // Validate chronological order
+        if (!endDateTime.isAfter(startDateTime)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('End date/time must be after start date/time'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+
+        final event = Event(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: _nameController.text,
+          description: _descriptionController.text,
+          location: _locationController.text,
+          type: state.type,
+          date: startDateTime.toIso8601String(),
+          endDate: endDateTime.toIso8601String(),
+          duration: int.parse(_durationController.text),
+          audienceSize: _audienceSizeController.text.isNotEmpty 
+              ? int.parse(_audienceSizeController.text) 
+              : null,
+          planningMode: state.planningMode,
+          status: 'draft',
+          createdAt: DateTime.now().toIso8601String(),
+          createdBy: widget.user.id,
+          attendeeCount: 0,
+          latitude: state.latitude,
+          longitude: state.longitude,
+        );
       widget.onCreateEvent(event);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -285,19 +320,47 @@ class _CreateEventViewState extends State<_CreateEventView> {
         );
 
         final startDateField = _buildDatePicker(
-          label: 'Start Date *',
-          selectedDate: state.startDate,
-          onDateSelected: (date) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'startDate': date}));
+          label: 'Start Date & Time *',
+          selectedDate: state.startDate != null && state.startTime != null
+              ? DateTime(
+                  state.startDate!.year,
+                  state.startDate!.month,
+                  state.startDate!.day,
+                  state.startTime!.hour,
+                  state.startTime!.minute,
+                )
+              : state.startDate,
+          onDateSelected: (dateTime) {
+            // Extract date and time from the combined DateTime
+            final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+            final time = TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+            context.read<CreateEventBloc>().add(UpdateEventDetails({
+              'startDate': date,
+              'startTime': time,
+            }));
           },
         );
 
         final endDateField = _buildDatePicker(
-          label: 'End Date *',
-          selectedDate: state.endDate,
+          label: 'End Date & Time *',
+          selectedDate: state.endDate != null && state.endTime != null
+              ? DateTime(
+                  state.endDate!.year,
+                  state.endDate!.month,
+                  state.endDate!.day,
+                  state.endTime!.hour,
+                  state.endTime!.minute,
+                )
+              : state.endDate,
           firstDate: state.startDate,
-          onDateSelected: (date) {
-            context.read<CreateEventBloc>().add(UpdateEventDetails({'endDate': date}));
+          onDateSelected: (dateTime) {
+            // Extract date and time from the combined DateTime
+            final date = DateTime(dateTime.year, dateTime.month, dateTime.day);
+            final time = TimeOfDay(hour: dateTime.hour, minute: dateTime.minute);
+            context.read<CreateEventBloc>().add(UpdateEventDetails({
+              'endDate': date,
+              'endTime': time,
+            }));
           },
         );
 
@@ -334,7 +397,7 @@ class _CreateEventViewState extends State<_CreateEventView> {
                 const SizedBox(height: 16),
                 
                 _buildLocationAutocomplete(state),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 
                 if (isSmall) ...[
                   eventTypeField,
@@ -348,21 +411,19 @@ class _CreateEventViewState extends State<_CreateEventView> {
                       Expanded(child: audienceField),
                     ],
                   ),
+                const SizedBox(height: 24),
+
+                // Start Date & Time
+                Text('Start Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                startDateField,
                 const SizedBox(height: 16),
-                
-                if (isSmall) ...[
-                  startDateField,
-                  const SizedBox(height: 16),
-                  endDateField,
-                ] else
-                  Row(
-                    children: [
-                      Expanded(child: startDateField),
-                      const SizedBox(width: 16),
-                      Expanded(child: endDateField),
-                    ],
-                  ),
-                const SizedBox(height: 16),
+
+                // End Date & Time
+                Text('End Schedule', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                endDateField,
+                const SizedBox(height: 24),
                 
                 TextFormField(
                   controller: _durationController,
@@ -415,6 +476,7 @@ class _CreateEventViewState extends State<_CreateEventView> {
     required DateTime? selectedDate,
     required Function(DateTime) onDateSelected,
     DateTime? firstDate,
+    VoidCallback? onPostSelect,
   }) {
     return FormField<DateTime>(
       initialValue: selectedDate,
@@ -422,26 +484,121 @@ class _CreateEventViewState extends State<_CreateEventView> {
       builder: (state) {
         return InkWell(
           onTap: () async {
+            // First show date picker
             final date = await showDatePicker(
               context: context,
-              initialDate: selectedDate ?? DateTime.now(),
+              initialDate: selectedDate ?? firstDate ?? DateTime.now(),
               firstDate: firstDate ?? DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365)),
             );
-            if (date != null) {
-              onDateSelected(date);
-              state.didChange(date);
+            
+            if (date != null && mounted) {
+              // Store the selected date and context
+              final selectedDateValue = date;
+              final currentContext = context;
+              
+              // Use SchedulerBinding to ensure date picker is fully dismissed
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                // Use Timer to delay showing time picker
+                Timer(const Duration(milliseconds: 300), () {
+                  if (!mounted) return;
+                  
+                  // Show time picker
+                  showTimePicker(
+                    context: currentContext,
+                    initialTime: selectedDate != null && selectedDate!.hour > 0
+                        ? TimeOfDay.fromDateTime(selectedDate!)
+                        : const TimeOfDay(hour: 9, minute: 0),
+                    helpText: label.contains('Start') ? 'SELECT START TIME' : 'SELECT END TIME',
+                  ).then((time) {
+                    // Only proceed if time was selected and widget is still mounted
+                    if (time != null && mounted) {
+                      // Combine date and time into a single DateTime
+                      final dateTime = DateTime(
+                        selectedDateValue.year,
+                        selectedDateValue.month,
+                        selectedDateValue.day,
+                        time.hour,
+                        time.minute,
+                      );
+                      
+                      // Update the form state
+                      onDateSelected(dateTime);
+                      state.didChange(dateTime);
+                      
+                      // Trigger any post-selection callback if provided
+                      if (onPostSelect != null) {
+                        onPostSelect();
+                      }
+                    }
+                    // Note: If user cancels time picker, nothing is saved (both date and time must be selected)
+                  });
+                });
+              });
             }
           },
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: label,
               errorText: state.errorText,
+              prefixIcon: const Icon(Icons.calendar_month_outlined, size: 20),
             ),
             child: Text(
               selectedDate == null 
-                  ? 'Select date' 
-                  : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                  ? 'Select date & time' 
+                  : '${selectedDate.day}/${selectedDate.month}/${selectedDate.year} ${selectedDate.hour.toString().padLeft(2, '0')}:${selectedDate.minute.toString().padLeft(2, '0')}',
+              style: TextStyle(
+                color: selectedDate == null ? AppColors.gray400 : AppColors.gray900,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTimePicker({
+    required String label,
+    required TimeOfDay? selectedTime,
+    required Function(TimeOfDay) onTimeSelected,
+    bool enabled = true,
+  }) {
+    return FormField<TimeOfDay>(
+      initialValue: selectedTime,
+      validator: (value) => value == null ? 'Required' : null,
+      builder: (state) {
+        return InkWell(
+          onTap: enabled ? () async {
+            final time = await showTimePicker(
+              context: context,
+              initialTime: selectedTime ?? const TimeOfDay(hour: 9, minute: 0),
+            );
+            if (time != null) {
+              onTimeSelected(time);
+              state.didChange(time);
+            }
+          } : null,
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: label,
+              errorText: state.errorText,
+              prefixIcon: Icon(
+                Icons.access_time_outlined, 
+                size: 20, 
+                color: enabled ? AppColors.primaryIndigo : AppColors.gray400,
+              ),
+              filled: !enabled,
+              fillColor: enabled ? null : AppColors.gray100,
+            ),
+            child: Text(
+              selectedTime == null
+                  ? 'Select time'
+                  : selectedTime.format(context),
+              style: TextStyle(
+                color: enabled 
+                    ? (selectedTime == null ? AppColors.gray400 : AppColors.gray900)
+                    : AppColors.gray500,
+              ),
             ),
           ),
         );

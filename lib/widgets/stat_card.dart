@@ -37,6 +37,7 @@ class StatCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Prevent overflow
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -51,14 +52,20 @@ class StatCard extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: isDark ? AppColors.slate50 : AppColors.slate900,
+          const SizedBox(height: 8), // Use fixed spacing instead of Spacer
+          Flexible(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: isDark ? AppColors.slate50 : AppColors.slate900,
+                fontSize: 24, // Limit font size to prevent overflow
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

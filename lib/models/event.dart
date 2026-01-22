@@ -13,11 +13,14 @@ class Event {
   final String planningMode; // 'automated' or 'manual'
   final String status; // 'draft', 'published', 'ongoing', 'completed'
   final String createdAt;
+  final String createdBy;
   final int? attendeeCount;
   final double? latitude;
   final double? longitude;
 
   final String? image;
+  final bool isJoined;
+  final String? agenda; // Agenda text from API
 
   Event({
     required this.id,
@@ -32,10 +35,13 @@ class Event {
     required this.planningMode,
     required this.status,
     required this.createdAt,
+    required this.createdBy,
     this.attendeeCount,
     this.latitude,
     this.longitude,
     this.image,
+    this.isJoined = false,
+    this.agenda,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -52,10 +58,13 @@ class Event {
       planningMode: json['planningMode'] as String,
       status: json['status'] as String,
       createdAt: json['createdAt'] as String,
+      createdBy: json['createdBy'] as String? ?? '',
       attendeeCount: json['attendeeCount'] as int?,
       latitude: json['latitude'] as double?,
       longitude: json['longitude'] as double?,
       image: json['image'] as String?,
+      isJoined: json['isJoined'] ?? false,
+      agenda: json['agenda'] as String?,
     );
   }
 
@@ -73,10 +82,13 @@ class Event {
       planningMode: data.agenda.isNotEmpty ? 'automated' : 'manual',
       status: data.isCompleteDetails ? 'published' : 'draft',
       createdAt: data.createdAt,
+      createdBy: data.createdBy,
       attendeeCount: data.membersCount,
       latitude: data.coordinates?.coordinates[1],
       longitude: data.coordinates?.coordinates[0],
       image: data.attachments.isNotEmpty ? data.attachments.first : null,
+      isJoined: data.isMember,
+      agenda: data.agenda.isNotEmpty ? data.agenda : null,
     );
   }
 
@@ -94,10 +106,13 @@ class Event {
       'planningMode': planningMode,
       'status': status,
       'createdAt': createdAt,
+      'createdBy': createdBy,
       'attendeeCount': attendeeCount,
       'latitude': latitude,
       'longitude': longitude,
       'image': image,
+      'isJoined': isJoined,
+      'agenda': agenda,
     };
   }
 }

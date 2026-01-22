@@ -125,28 +125,34 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Logo
                             Center(
                               child: Container(
                                 width: 72,
                                 height: 72,
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [AppColors.primary, AppColors.secondary],
-                                  ),
                                   borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ],
                                 ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.white,
-                                  size: 36,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [AppColors.primary, AppColors.secondary],
+                                          ),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Icon(
+                                          Icons.auto_awesome,
+                                          color: Colors.white,
+                                          size: 36,
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),

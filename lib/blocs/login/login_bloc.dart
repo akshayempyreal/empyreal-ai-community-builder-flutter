@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../repositories/auth_repository.dart';
@@ -23,7 +22,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       final String? deviceToken = await NotificationService().getToken();
       String deviceType = 'Web';
       if (!kIsWeb) {
-        deviceType = Platform.isAndroid ? 'Android' : 'iOS';
+        deviceType = defaultTargetPlatform == TargetPlatform.android ? 'Android' : 'iOS';
       }
 
       final request = LoginRequest(

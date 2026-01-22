@@ -81,6 +81,16 @@ class DaySession {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'day': day,
+      'date': date,
+      'dayStartDateTime': dayStartDateTime,
+      'dayEndDateTime': dayEndDateTime,
+      'sessions': sessions.map((x) => x.toJson()).toList(),
+    };
+  }
+
   DaySession copyWith({
     int? day,
     String? date,
@@ -126,6 +136,16 @@ class SessionItem {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'sessionTitle': sessionTitle,
+      'sessionDescription': sessionDescription,
+      'startDateTime': startDateTime,
+      'endDateTime': endDateTime,
+      'durationMinutes': durationMinutes,
+    };
+  }
+
   SessionItem copyWith({
     String? sessionTitle,
     String? sessionDescription,
@@ -141,6 +161,44 @@ class SessionItem {
       endDateTime: endDateTime ?? this.endDateTime,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       sessionType: sessionType ?? this.sessionType,
+    );
+  }
+}
+
+// Save Sessions Request/Response Models
+class SaveSessionsRequest {
+  final String eventId;
+  final List<DaySession> sessions;
+
+  SaveSessionsRequest({
+    required this.eventId,
+    required this.sessions,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'eventId': eventId,
+      'sessions': sessions.map((x) => x.toJson()).toList(),
+    };
+  }
+}
+
+class SaveSessionsResponse {
+  final bool status;
+  final String message;
+  final dynamic data;
+
+  SaveSessionsResponse({
+    required this.status,
+    required this.message,
+    this.data,
+  });
+
+  factory SaveSessionsResponse.fromJson(Map<String, dynamic> json) {
+    return SaveSessionsResponse(
+      status: json['status'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'],
     );
   }
 }

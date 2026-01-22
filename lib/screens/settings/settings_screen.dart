@@ -2,7 +2,6 @@ import 'package:empyreal_ai_community_builder_flutter/core/theme/app_theme.dart'
 import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
 import 'package:flutter/material.dart';
 
-
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onLogout;
@@ -42,12 +41,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20)
-                        .paddingAll(context, 8)
-                        .onClick(widget.onBack),
+                    const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 20,
+                    ).paddingAll(context, 8).onClick(widget.onBack),
                     const Spacer(),
                     const Text(
                       'Settings',
@@ -62,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              
+
               Expanded(
                 child: Center(
                   child: Container(
@@ -80,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onTap: widget.onNavigateToProfile,
                             ),
                           ]),
-                          
+
                           32.height(context),
                           _buildSectionTitle('Notifications'),
                           _buildSettingsGroup([
@@ -99,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ]),
-                          
+
                           32.height(context),
                           _buildSectionTitle('Legal & Support'),
                           _buildSettingsGroup([
@@ -121,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onTap: () => _showAboutDialog(context),
                             ),
                           ]),
-                          
+
                           48.height(context),
                           SizedBox(
                             width: double.infinity,
@@ -132,12 +136,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: AppColors.error,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: 12.roundBorder,
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 32),
                           const Center(
                             child: Text(
@@ -180,9 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Card(
       elevation: 1,
       shape: 16.roundBorder,
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -192,44 +196,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget? trailing,
     VoidCallback? onTap,
   }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primaryIndigo.withOpacity(0.1),
-          borderRadius: 8.radius,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: 12.radius,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(borderRadius: 12.radius),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryIndigo.withOpacity(0.1),
+                  borderRadius: 8.radius,
+                ),
+                child: Icon(icon, color: AppColors.primaryIndigo, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.gray900,
+                  ),
+                ),
+              ),
+              if (trailing != null)
+                trailing
+              else
+                const Icon(Icons.chevron_right, color: AppColors.gray400),
+            ],
+          ),
         ),
-        child: Icon(icon, color: AppColors.primaryIndigo, size: 22),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppColors.gray900,
-        ),
-      ),
-      trailing: trailing ?? const Icon(Icons.chevron_right, color: AppColors.gray400),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Empyreal AI Event Builder',
+      applicationName: 'EvoMeet',
       applicationVersion: '1.0.0',
       applicationIcon: Container(
         width: 48,
         height: 48,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
-          ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'E',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-        child: const Icon(Icons.calendar_today, color: Colors.white, size: 24),
       ),
       children: [
         const Text(

@@ -3,12 +3,17 @@ import 'package:empyreal_ai_community_builder_flutter/models/event.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/user.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../repositories/event_repository.dart';
+import '../../../services/api_client.dart';
 
-class AIAgendaBuilderScreen extends StatelessWidget {
+class AIAgendaBuilderScreen extends StatefulWidget {
   final Event event;
   final Function(List<AgendaItem>) onSaveAgenda;
   final VoidCallback onBack;
   final User user;
+  final String token;
+  final VoidCallback onSaveAndRedirect;
+  final Function(String) onNavigateToGeneratedAgenda;
 
   const AIAgendaBuilderScreen({
     super.key,
@@ -16,264 +21,261 @@ class AIAgendaBuilderScreen extends StatelessWidget {
     required this.onSaveAgenda,
     required this.onBack,
     required this.user,
+    required this.token,
+    required this.onSaveAndRedirect,
+    required this.onNavigateToGeneratedAgenda,
   });
 
   @override
+  State<AIAgendaBuilderScreen> createState() => _AIAgendaBuilderScreenState();
+}
+
+class _AIAgendaBuilderScreenState extends State<AIAgendaBuilderScreen>
+    with SingleTickerProviderStateMixin {
+  bool _isGenerating = false;
+  String? _errorMessage;
+  String? _generatedAgenda;
+
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
+
+  static const double _progressValue = 0.65; // existing progress logic
+
+  @override
+  void initState() {
+    super.initState();
+
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+
+    _progressAnimation =
+        Tween<double>(begin: 0, end: _progressValue).animate(
+          CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
+        );
+
+    _generateAgenda();
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generateAgenda() async {
+    setState(() {
+      _isGenerating = true;
+      _errorMessage = null;
+    });
+
+    _progressController.forward();
+
+    try {
+      final repository = EventRepository(ApiClient());
+      final response =
+      await repository.generateAgenda(widget.event.id, widget.token);
+
+      if (response.status && response.data != null) {
+        setState(() {
+          _generatedAgenda = response.data!.agenda;
+          _isGenerating = false;
+        });
+
+        if (mounted) {
+          widget.onNavigateToGeneratedAgenda(_generatedAgenda!);
+        }
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      setState(() {
+        _isGenerating = false;
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: _buildAppBar(theme),
+        body: _buildErrorState(),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: onBack,
-        ),
-        title: const Text(
-          'AI Generating Agenda',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.blue,
-            height: 2,
-            width: 120, // Approximate width for the indicator
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: _buildAppBar(theme),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              _buildAICircle(),
+              const SizedBox(height: 32),
+
+              Text(
+                _isGenerating
+                    ? 'Generating your agenda...'
+                    : 'Agenda generated!',
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+
+              Text(
+                _isGenerating
+                    ? 'AI is analyzing your event details'
+                    : 'Please wait...',
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.info),
+              ),
+
+              const SizedBox(height: 32),
+              _buildAnimatedProgressBar(theme),
+              const SizedBox(height: 32),
+
+              if (_isGenerating) _buildSuggestionCard(),
+            ],
           ),
         ),
       ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 600
-          ? _buildBottomNav()
-          : null,
-      body: SafeArea(
-        child: Column(
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(ThemeData theme) {
+    return AppBar(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios, size: 20),
+        onPressed: widget.onBack,
+      ),
+      title: const Text(
+        'AI Generating Agenda',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedProgressBar(ThemeData theme) {
+    return AnimatedBuilder(
+      animation: _progressAnimation,
+      builder: (_, __) {
+        final progressValue = _progressAnimation.value;
+        final isComplete = progressValue >= 1.0;
+        final borderColor = isComplete ? AppColors.success : AppColors.gray300;
+        final progressColor = isComplete ? AppColors.success : AppColors.info;
+        
+        return Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Overall Completion',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${(progressValue * 100).round()}%',
+                  style: TextStyle(
+                    color: progressColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+              height: 16,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: borderColor,
+                  width: 2,
+                ),
+                color: theme.scaffoldBackgroundColor,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
                   children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 20),
-                            // AI Circle Indicator
-                            _buildAICircle(),
-                            const SizedBox(height: 32),
-
-                            // Status Text
-                            const Text(
-                              'Optimizing break placement...',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Analyzing event flow',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.info,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-
-                            // Progress Section
-                            _buildProgressSection(),
-                            const SizedBox(height: 32),
-
-                            // Live Suggestions Header
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Live AI Suggestions',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.indigo100,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    '4 NEW',
-                                    style: TextStyle(
-                                      color: AppColors.primaryIndigo,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Suggestion Card
-                            _buildSuggestionCard(),
-
-                            const SizedBox(height: 16),
-
-                            // Swipe hint
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Column(
-                                  children: [
-                                    Icon(Icons.swipe_left, color: AppColors.gray400),
-                                    SizedBox(height: 4),
-                                    Text('SWIPE LEFT TO SKIP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
-                                  ],
-                                ),
-                                Column(
-                                  children: [
-                                    Icon(Icons.swipe_right, color: AppColors.gray400),
-                                    SizedBox(height: 4),
-                                    Text('SWIPE RIGHT TO KEEP', style: TextStyle(fontSize: 10, color: AppColors.gray400)),
-                                  ],
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Venue Layout Analysis
-                            _buildVenueAnalysis(),
-                          ],
+                    // Background
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: AppColors.gray100.withOpacity(0.3),
+                    ),
+                    // Progress fill with smooth animation
+                    FractionallySizedBox(
+                      widthFactor: progressValue,
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          gradient: LinearGradient(
+                            colors: isComplete
+                                ? [AppColors.success, AppColors.success.withOpacity(0.8)]
+                                : [progressColor, progressColor.withOpacity(0.8)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-
-      ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildAICircle() {
-    return SizedBox(
-      width: 200,
-      height: 200,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer rings opacity
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.info.withOpacity(0.1),
-            ),
-          ),
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.info.withOpacity(0.2),
-            ),
-          ),
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.info.withOpacity(0.3),
-            ),
-          ),
-          // Core
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.info, AppColors.indigo100],
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: AppColors.info,
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: const Center(
-              child: Text(
-                'AI',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+    return Container(
+      width: 160,
+      height: 160,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [AppColors.info, AppColors.indigo100],
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.info,
+            blurRadius: 25,
+            spreadRadius: 2,
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildProgressSection() {
-    return Column(
-      children: [
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Overall Completion',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.gray700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              '65%',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.info,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+      child: const Center(
+        child: Text(
+          'AI',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 12),
-        Stack(
-          children: [
-            Container(
-              height: 8,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.gray200,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            Container(
-              height: 8,
-              width: 220, // 65% approximate width
-              decoration: BoxDecoration(
-                color: AppColors.info,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
@@ -281,202 +283,47 @@ class AIAgendaBuilderScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: AppColors.gray100),
+        border: Border.all(color: AppColors.gray200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.indigo100,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'NETWORKING',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryIndigo,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-              ),
-              const Text(
-                '14:00 - 15:00',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.gray500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+        children: const [
+          Text(
+            'AI is preparing your agenda...',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Interactive AI Workshop:\nPrompt Engineering 101',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'A hands-on session where attendees collaborate to build complex prompt chains for creative workflows. Includes 15 min Q&A.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.gray600,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Regenerate'),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.gray50,
-                    foregroundColor: Colors.black,
-                    side: BorderSide.none,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.check_circle, size: 18),
-                  label: const Text('Keep'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.info,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
+          SizedBox(height: 12),
+          Text(
+            'Optimizing sessions, time slots, and engagement flow.',
+            style: TextStyle(color: AppColors.gray600),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVenueAnalysis() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'VENUE LAYOUT ANALYSIS',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppColors.gray600,
-            letterSpacing: 1.2,
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          const Text(
+            'Failed to Generate Agenda',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1.5,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.gray200,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.map, size: 32, color: AppColors.gray400),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1.5,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://placeholder.com/heatmap'), // Placeholder
-                      fit: BoxFit.cover,
-                      opacity: 0.6,
-                    ),
-                  ),
-                  child: const Center(
-                     child: Icon(Icons.bar_chart, size: 32, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.gray200)),
+          const SizedBox(height: 12),
+          Text(_errorMessage!, textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _generateAgenda,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildNavItem(Icons.auto_awesome, 'Generate', true),
-              _buildNavItem(Icons.calendar_today, 'Agenda', false),
-              _buildNavItem(Icons.people, 'Speakers', false),
-              _buildNavItem(Icons.settings, 'Setup', false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? AppColors.info : AppColors.gray400,
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: isActive ? AppColors.info : AppColors.gray400,
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
     );
   }
 }

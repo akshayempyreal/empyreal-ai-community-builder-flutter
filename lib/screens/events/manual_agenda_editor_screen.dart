@@ -19,6 +19,9 @@ class ManualAgendaEditorScreen extends StatefulWidget {
   final VoidCallback onBack;
   final User user;
   final String token;
+  final VoidCallback onSaveAndRedirect;
+  final Function(String) onNavigateToGeneratedAgenda;
+  final bool isEditMode;
 
   const ManualAgendaEditorScreen({
     super.key,
@@ -28,6 +31,9 @@ class ManualAgendaEditorScreen extends StatefulWidget {
     required this.onBack,
     required this.user,
     required this.token,
+    required this.onSaveAndRedirect,
+    required this.onNavigateToGeneratedAgenda,
+    this.isEditMode = false,
   });
 
   @override
@@ -37,6 +43,7 @@ class ManualAgendaEditorScreen extends StatefulWidget {
 class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
   int _selectedDayIndex = 0;
   List<DaySession> _localSessions = [];
+  bool _isGeneratingAgenda = false;
 
   void _initializeLocalSessions(SessionData data) {
     if (_localSessions.isEmpty) {
@@ -68,7 +75,11 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
-              title: Text(_localSessions.isNotEmpty ? 'Edit Event Agenda' : 'Event Created Successfully'),
+              title: Text(
+                widget.isEditMode 
+                    ? 'Edit Event Agenda' 
+                    : (_localSessions.isNotEmpty ? 'Create Event Agenda' : 'Event Created Successfully'),
+              ),
               backgroundColor: Colors.white,
               foregroundColor: AppColors.gray900,
               elevation: 0,
@@ -96,60 +107,102 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 32),
-                      SizedBox(width: 12),
-                      Text(
-                        'Event Details',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 32),
-                  _buildDetailRow('Event Name', widget.event.name),
-                  _buildDetailRow('Description', widget.event.description),
-                  _buildDetailRow('Location', widget.event.location),
-                  _buildDetailRow('Event Type', widget.event.type),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailRow('Start Date', _formatDate(widget.event.date))),
-                      Expanded(child: _buildDetailRow('End Date', widget.event.endDate != null ? _formatDate(widget.event.endDate!) : 'N/A')),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailRow('Hours per Day', '${widget.event.duration} hours')),
-                      Expanded(child: _buildDetailRow('Expected Audience', '${widget.event.audienceSize ?? 0}')),
-                    ],
-                  ),
-                ],
+          const SizedBox(height: 40),
+          // Agenda Icon
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryIndigo.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.event_note,
+              color: Colors.white,
+              size: 60,
             ),
           ),
           const SizedBox(height: 32),
-          Center(
-            child: ElevatedButton(
-              onPressed: () {
-                context.read<AgendaBloc>().add(
-                      GenerateSessionsRequested(eventId: widget.event.id, token: widget.token),
-                    );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          // Title
+          const Text(
+            'Create Your Event Agenda',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.gray900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          // Description
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Build a comprehensive agenda for "${widget.event.name}" by creating sessions, workshops, and activities.',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.gray600,
+                height: 1.5,
               ),
-              child: const Text('Create Agenda'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 48),
+          // Create Agenda Button
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<AgendaBloc>().add(
+                    GenerateSessionsRequested(eventId: widget.event.id, token: widget.token),
+                  );
+            },
+            icon: const Icon(Icons.add_circle_outline, size: 24),
+            label: const Text(
+              'Create Agenda',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryIndigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Info Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppColors.primaryIndigo, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'You can add sessions, set timings, and organize your event schedule.',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -226,14 +279,15 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
           padding: const EdgeInsets.all(24.0),
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _handleSaveAndGoToDashboard,
+              icon: const Icon(Icons.save, color: Colors.white),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 backgroundColor: AppColors.primaryIndigo,
               ),
-              child: const Text('Save & Go to Dashboard', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text('Save Sessions & Generate Agenda', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
         ),
@@ -571,28 +625,94 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     });
   }
 
-  void _handleSaveAndGoToDashboard() {
-    final List<AgendaItem> items = [];
-    int counter = 1;
-    
-    for (var day in _localSessions) {
-      for (var session in day.sessions) {
-        final start = DateTime.parse(session.startDateTime).toLocal();
-        final end = DateTime.parse(session.endDateTime).toLocal();
-        
-        items.add(AgendaItem(
-          id: 'gen_$counter',
-          title: session.sessionTitle,
-          startTime: DateFormat('HH:mm').format(start),
-          endTime: DateFormat('HH:mm').format(end),
-          type: session.sessionType,
-          description: session.sessionDescription,
-        ));
-        counter++;
+  Future<void> _handleSaveAndGoToDashboard() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Step 1: Save sessions
+      final request = SaveSessionsRequest(
+        eventId: widget.event.id,
+        sessions: _localSessions,
+      );
+
+      final repository = EventRepository(ApiClient());
+      final saveSessionsResponse = await repository.saveSessions(request, widget.token);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (!saveSessionsResponse.status) {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(saveSessionsResponse.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Step 2: Generate agenda
+      setState(() => _isGeneratingAgenda = true);
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const _GeneratingAgendaDialog(),
+        );
+      }
+
+      final generateAgendaResponse = await repository.generateAgenda(
+        widget.event.id,
+        widget.token,
+      );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        setState(() => _isGeneratingAgenda = false);
+      }
+
+      if (generateAgendaResponse.status && generateAgendaResponse.data != null) {
+        // Step 3: Navigate to generated agenda screen using state-based navigation
+        if (mounted) {
+          widget.onNavigateToGeneratedAgenda(generateAgendaResponse.data!.agenda);
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(generateAgendaResponse.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save sessions: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
-    
-    widget.onSaveAgenda(items);
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -649,11 +769,10 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
   
   final List<String> _messages = [
     'Creating Agenda...',
-    'Managing Timing...',
-    'Arranging Sessions...',
-    'Adding Breaks...',
-    'Optimizing Schedule...',
-    'Finalizing Details...',
+    'Organizing Sessions...',
+    'Setting Timings...',
+    'Structuring Schedule...',
+    'Finalizing Agenda...',
   ];
 
   @override
@@ -845,14 +964,229 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
 
   String _getSubtitle(int index) {
     switch (index) {
-      case 0: return 'Structuring the foundation of your event';
-      case 1: return 'Ensuring a perfect flow for every speaker';
-      case 2: return 'Balancing learning and interactive workshops';
-      case 3: return 'Strategically placing networking intervals';
-      case 4: return 'Maximizing engagement across all segments';
-      case 5: return 'Polishing the timeline for your community';
-      default: return 'Architecting your perfect community event';
+      case 0: return 'Building your event agenda structure';
+      case 1: return 'Organizing sessions and activities';
+      case 2: return 'Setting optimal timings for each session';
+      case 3: return 'Structuring the complete schedule';
+      case 4: return 'Finalizing your event agenda';
+      default: return 'Creating your event agenda';
     }
   }
 }
 
+class _GeneratingAgendaDialog extends StatefulWidget {
+  const _GeneratingAgendaDialog();
+
+  @override
+  State<_GeneratingAgendaDialog> createState() => _GeneratingAgendaDialogState();
+}
+
+class _GeneratingAgendaDialogState extends State<_GeneratingAgendaDialog> with SingleTickerProviderStateMixin {
+  int _messageIndex = 0;
+  Timer? _timer;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  
+  final List<String> _messages = [
+    'Generating Agenda...',
+    'Processing Sessions...',
+    'Creating Schedule...',
+    'Formatting Agenda...',
+    'Finalizing Agenda...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted) {
+        setState(() {
+          _messageIndex = (_messageIndex + 1) % _messages.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // AI Orb Animation
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer Glowing Rings
+                ScaleTransition(
+                  scale: _pulseAnimation,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryIndigo.withOpacity(0.1),
+                    ),
+                  ),
+                ),
+                ScaleTransition(
+                  scale: Tween<double>(begin: 1.15, end: 0.85).animate(_pulseController),
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primaryIndigo.withOpacity(0.2), width: 2),
+                    ),
+                  ),
+                ),
+                // Main Orb
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryIndigo.withOpacity(0.4),
+                        blurRadius: 15,
+                        spreadRadius: 3,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.auto_awesome, color: Colors.white, size: 32),
+                  ),
+                ),
+                // Rotating Progress Ring
+                SizedBox(
+                  width: 85,
+                  height: 85,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryIndigo),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Status Text
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.2),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: Column(
+                key: ValueKey<int>(_messageIndex),
+                children: [
+                  Text(
+                    _messages[_messageIndex],
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.gray900,
+                      letterSpacing: -0.3,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _getSubtitle(_messageIndex),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gray500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Progress bar
+            Container(
+              width: 200,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppColors.gray100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: const LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryIndigo),
+                  minHeight: 4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getSubtitle(int index) {
+    switch (index) {
+      case 0: return 'AI is generating your event agenda';
+      case 1: return 'Processing all sessions';
+      case 2: return 'Creating the schedule';
+      case 3: return 'Formatting agenda content';
+      case 4: return 'Finalizing your agenda';
+      default: return 'Generating agenda';
+    }
+  }
+}

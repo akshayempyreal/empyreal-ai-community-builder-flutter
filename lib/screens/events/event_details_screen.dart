@@ -1,6 +1,6 @@
-import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
+import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
 import 'dart:math' as math;
 import '../../models/user.dart';
@@ -8,14 +8,24 @@ import '../../models/event.dart';
 import '../../models/agenda_item.dart';
 import '../../models/attendee.dart';
 import '../../widgets/status_badge.dart';
+import '../../repositories/event_repository.dart';
+import '../../services/api_client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../blocs/events/event_actions_bloc.dart';
+import '../../blocs/events/event_actions_event.dart';
+import '../../blocs/events/event_actions_state.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final Event event;
   final List<AgendaItem> agendaItems;
   final List<Attendee> attendees;
   final Function(String) onNavigate;
   final VoidCallback onBack;
   final User user;
+  final String token;
 
   const EventDetailsScreen({
     super.key,
@@ -25,42 +35,396 @@ class EventDetailsScreen extends StatelessWidget {
     required this.onNavigate,
     required this.onBack,
     required this.user,
+    required this.token,
   });
 
   @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  late Event _currentEvent;
+  bool _isLoading = false;
+  bool? _previousJoinState; // Store previous join state before optimistic update
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEvent = widget.event;
+  }
+
+  bool get _isOwner => widget.user.id == _currentEvent.createdBy;
+
+  /// Check if the event has ended by comparing end date with current time
+  bool _isEventEnded() {
+    try {
+      if (_currentEvent.endDate == null || _currentEvent.endDate!.isEmpty) {
+        // If no end date, check start date + duration
+        final startDate = DateTime.parse(_currentEvent.date);
+        final endDateTime = startDate.add(Duration(hours: _currentEvent.duration));
+        return DateTime.now().isAfter(endDateTime);
+      } else {
+        // Use end date if available
+        final endDate = DateTime.parse(_currentEvent.endDate!);
+        return DateTime.now().isAfter(endDate);
+      }
+    } catch (e) {
+      // If parsing fails, assume event is not ended
+      return false;
+    }
+  }
+
+  /// Get the current status of the event based on time (upcoming, ongoing, past)
+  String _getEventStatus() {
+    try {
+      final now = DateTime.now();
+      final startDate = DateTime.parse(_currentEvent.date).toLocal();
+      
+      // Determine end date
+      DateTime endDate;
+      if (_currentEvent.endDate != null && _currentEvent.endDate!.isNotEmpty) {
+        endDate = DateTime.parse(_currentEvent.endDate!).toLocal();
+      } else {
+        // If no end date, calculate from start date + duration
+        endDate = startDate.add(Duration(hours: _currentEvent.duration));
+      }
+      
+      // Compare current time with event dates
+      if (now.isBefore(startDate)) {
+        return 'upcoming';
+      } else if (now.isAfter(endDate)) {
+        return 'past';
+      } else {
+        // Event is currently happening
+        return 'ongoing';
+      }
+    } catch (e) {
+      // If parsing fails, return the stored status
+      return _currentEvent.status;
+    }
+  }
+
+  Future<void> _showDeleteDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: Text(
+          'Are you sure you want to delete "${_currentEvent.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isLoading = true);
+      // Use the context from the BlocConsumer builder which has access to BlocProvider
+      context.read<EventActionsBloc>().add(
+        DeleteEvent(eventId: _currentEvent.id, token: widget.token),
+      );
+    }
+  }
+
+  Future<void> _showEditDialog(BuildContext context) async {
+    final nameController = TextEditingController(text: _currentEvent.name);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit Event Name'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Event Name',
+            hintText: 'Enter new event name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, nameController.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && result != _currentEvent.name) {
+      _updateEventName(result);
+    }
+  }
+
+  Future<void> _updateEventName(String newName) async {
+    setState(() => _isLoading = true);
+    try {
+      final repository = EventRepository(ApiClient());
+      
+      final request = UpdateEventRequest(
+        id: _currentEvent.id,
+        name: newName,
+        startDate: _currentEvent.date,
+        endDate: _currentEvent.endDate ?? _currentEvent.date,
+        description: _currentEvent.description,
+        attachments: _currentEvent.image != null ? [_currentEvent.image!] : [],
+        hoursInDay: _currentEvent.duration,
+        eventType: _currentEvent.type,
+        expectedAudienceSize: _currentEvent.audienceSize ?? 0,
+        location: _currentEvent.location,
+        lat: _currentEvent.latitude?.toString() ?? "0.0",
+        long: _currentEvent.longitude?.toString() ?? "0.0",
+      );
+
+      final response = await repository.updateEvent(request, widget.token);
+
+      if (response.status && response.data != null) {
+        setState(() {
+          final updatedEvent = Event.fromEventData(response.data!);
+          // Preserve agenda if it exists
+          _currentEvent = Event(
+            id: updatedEvent.id,
+            name: updatedEvent.name,
+            description: updatedEvent.description,
+            location: updatedEvent.location,
+            type: updatedEvent.type,
+            date: updatedEvent.date,
+            endDate: updatedEvent.endDate,
+            duration: updatedEvent.duration,
+            audienceSize: updatedEvent.audienceSize,
+            planningMode: updatedEvent.planningMode,
+            status: updatedEvent.status,
+            createdAt: updatedEvent.createdAt,
+            createdBy: updatedEvent.createdBy,
+            attendeeCount: updatedEvent.attendeeCount,
+            latitude: updatedEvent.latitude,
+            longitude: updatedEvent.longitude,
+            image: updatedEvent.image,
+            isJoined: updatedEvent.isJoined,
+            agenda: response.data!.agenda.isNotEmpty ? response.data!.agenda : _currentEvent.agenda,
+          );
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event updated successfully')),
+          );
+        }
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final horizontalPadding = context.isMobile ? 16.0 : context.width < 900 ? 24.0 : 32.0;
 
-    return Scaffold(
-      backgroundColor: AppColors.gray50,
+    return BlocProvider(
+      create: (context) => EventActionsBloc(EventRepository(ApiClient())),
+      child: BlocConsumer<EventActionsBloc, EventActionsState>(
+        listener: (context, state) {
+          if (state is DeleteEventSuccess) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              // Navigate back to dashboard after successful deletion
+              widget.onBack();
+            }
+          } else if (state is EventActionFailure) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else if (state is EventJoinLeaveSuccess) {
+            // Use stored previous join status to determine the action taken
+            // This was set before the optimistic update in the button handler
+            final wasJoined = _previousJoinState ?? _currentEvent.isJoined;
+            
+            // Update event with response data, preserving existing data if server doesn't provide it
+            if (state.response.data != null) {
+              setState(() {
+                final serverData = state.response.data!;
+                // Store the optimistic count before server update
+                final optimisticCount = _currentEvent.attendeeCount ?? 0;
+                
+                // Merge server response with existing event data
+                // Preserve existing data when server returns 0, null, or empty values for non-join-related fields
+                // Only update join status and attendee count from server response
+                _currentEvent = Event(
+                  id: _currentEvent.id, // Always preserve existing ID
+                  name: (serverData.name.isNotEmpty && serverData.name != _currentEvent.name) ? serverData.name : _currentEvent.name,
+                  description: (serverData.description.isNotEmpty && serverData.description != _currentEvent.description) ? serverData.description : _currentEvent.description,
+                  location: (serverData.location.isNotEmpty && serverData.location != _currentEvent.location) ? serverData.location : _currentEvent.location,
+                  type: (serverData.eventType.isNotEmpty && serverData.eventType != _currentEvent.type) ? serverData.eventType : _currentEvent.type,
+                  date: (serverData.startDate.isNotEmpty && serverData.startDate != _currentEvent.date) ? serverData.startDate : _currentEvent.date,
+                  endDate: (serverData.endDate.isNotEmpty && serverData.endDate != _currentEvent.endDate) ? serverData.endDate : _currentEvent.endDate,
+                  // Preserve duration if server returns 0 or same value
+                  duration: (serverData.hoursInDay > 0 && serverData.hoursInDay != _currentEvent.duration) ? serverData.hoursInDay : _currentEvent.duration,
+                  // Preserve audience size if server returns 0 or same value
+                  audienceSize: (serverData.expectedAudienceSize > 0 && serverData.expectedAudienceSize != _currentEvent.audienceSize) ? serverData.expectedAudienceSize : _currentEvent.audienceSize,
+                  // Always preserve planning mode
+                  planningMode: _currentEvent.planningMode,
+                  // Always preserve status
+                  status: _currentEvent.status,
+                  // Always preserve timestamps
+                  createdAt: _currentEvent.createdAt,
+                  createdBy: _currentEvent.createdBy,
+                  // Update attendee count from server
+                  // If server returns 0 but we had a positive optimistic count, use server value (it's source of truth)
+                  // But if server returns a valid positive value, use that
+                  attendeeCount: serverData.membersCount >= 0 ? serverData.membersCount : optimisticCount,
+                  // Preserve coordinates if server doesn't provide them
+                  latitude: serverData.coordinates?.coordinates[1] ?? _currentEvent.latitude,
+                  longitude: serverData.coordinates?.coordinates[0] ?? _currentEvent.longitude,
+                  // Preserve image if server doesn't provide one
+                  image: serverData.attachments.isNotEmpty ? serverData.attachments.first : _currentEvent.image,
+                  // Always update join status from server
+                  isJoined: serverData.isMember,
+                  // Preserve agenda if server doesn't provide it or update if server has a new one
+                  agenda: serverData.agenda.isNotEmpty ? serverData.agenda : _currentEvent.agenda,
+                );
+              });
+            } else {
+              // If no server data, keep the optimistic update that was already done in button handler
+              // No need to update again here
+            }
+            
+            // Show success message from API response
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.response.message.isNotEmpty
+                      ? state.response.message
+                      : (_currentEvent.isJoined 
+                          ? 'You have joined this event successfully!' 
+                          : 'You have left this event'),
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+            
+            // Clear the stored previous state
+            _previousJoinState = null;
+
+            // Navigate back to dashboard after successful join/leave as requested
+            if (mounted) {
+              widget.onBack();
+            }
+          } else if (state is EventActionFailure) {
+            // Revert optimistic update on failure - restore previous state
+            setState(() {
+              final previousIsJoined = !_currentEvent.isJoined;
+              final previousCount = _currentEvent.attendeeCount ?? 0;
+              _currentEvent = Event(
+                id: _currentEvent.id,
+                name: _currentEvent.name,
+                description: _currentEvent.description,
+                location: _currentEvent.location,
+                type: _currentEvent.type,
+                date: _currentEvent.date,
+                endDate: _currentEvent.endDate,
+                duration: _currentEvent.duration,
+                audienceSize: _currentEvent.audienceSize,
+                planningMode: _currentEvent.planningMode,
+                status: _currentEvent.status,
+                createdAt: _currentEvent.createdAt,
+                createdBy: _currentEvent.createdBy,
+                attendeeCount: previousIsJoined ? previousCount + 1 : (previousCount > 0 ? previousCount - 1 : 0),
+                latitude: _currentEvent.latitude,
+                longitude: _currentEvent.longitude,
+                image: _currentEvent.image,
+                isJoined: previousIsJoined,
+                agenda: _currentEvent.agenda, // Preserve agenda
+              );
+            });
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            bottomNavigationBar: _buildJoinLeaveBar(context, state),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
+          onPressed: widget.onBack,
         ),
         title: const Text('Event Details'),
         actions: [
-          CircleAvatar(
-            backgroundColor: AppColors.indigo100,
-            child: Text(
-              user.name[0].upper,
-              style: const TextStyle(color: AppColors.primaryIndigo),
+          if (_isOwner)
+            IconButton(
+              icon: _isLoading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.edit_outlined),
+              onPressed: _isLoading ? null : () => _showEditDialog(context),
+              tooltip: 'Edit Event',
             ),
-          ).paddingAll(context, 8),
+          if (_isOwner)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: _isLoading ? null : () => _showDeleteDialog(context),
+              tooltip: 'Delete Event',
+            ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(
+              backgroundColor: colorScheme.primary.withOpacity(0.1),
+              child: Text(
+                widget.user.name[0].toUpperCase(),
+                style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, viewport) {
-            final effectiveWidth = (viewport.maxWidth - (horizontalPadding * 2)).clamp(0.0, double.infinity);
-            final computedCount = math.max(1, (effectiveWidth / 320).floor());
-            final crossAxisCount = context.isMobile ? 1 : computedCount.clamp(1, 4);
-            final headerPadding = context.isMobile ? 16.0 : 24.0;
-            final titleSize = context.isMobile ? 22.0 : 28.0;
-
-            final imageHeight = context.isMobile ? 260.0 : 450.0;
             final contentMaxWidth = 1100.0;
-            final isDesktop = viewport.maxWidth >= 900;
+            final imageHeight = context.isMobile ? 260.0 : 450.0;
 
             return SingleChildScrollView(
               child: Column(
@@ -69,18 +433,18 @@ class EventDetailsScreen extends StatelessWidget {
                   // Cinematic Hero Image Header
                   Stack(
                     children: [
-                      if (event.image != null && event.image!.isNotEmpty)
+                      if (_currentEvent.image != null && _currentEvent.image!.isNotEmpty)
                         Image.network(
-                          event.image!.fixImageUrl,
+                          _currentEvent.image!.fixImageUrl,
                           height: imageHeight,
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
                             height: imageHeight,
                             width: double.infinity,
-                            color: AppColors.indigo100,
-                            child: const Icon(Icons.image_not_supported_outlined, 
-                                color: AppColors.primaryIndigo, size: 48),
+                            color: colorScheme.primary.withOpacity(0.05),
+                            child: Icon(Icons.image_not_supported_outlined,
+                                color: colorScheme.primary, size: 48),
                           ),
                         )
                       else
@@ -89,13 +453,12 @@ class EventDetailsScreen extends StatelessWidget {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [AppColors.primaryIndigo.withOpacity(0.1), AppColors.primaryPurple.withOpacity(0.1)],
+                              colors: [colorScheme.primary.withOpacity(0.1), colorScheme.secondary.withOpacity(0.1)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                           ),
                         ),
-                      // Subtle gradient overlay for better text contrast if needed
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
@@ -124,53 +487,46 @@ class EventDetailsScreen extends StatelessWidget {
                           Transform.translate(
                             offset: Offset(0, context.isMobile ? -30 : -50),
                             child: Card(
-                              elevation: 8,
-                              shadowColor: Colors.black.withOpacity(0.15),
-                              shape: 20.roundBorder.copyWith(
-                                side: const BorderSide(color: Colors.white, width: 2),
-                              ),
+                              elevation: 4,
+                              shadowColor: Colors.black.withOpacity(0.1),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      StatusBadge(status: event.status),
+                                      StatusBadge(status: _getEventStatus()),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: AppColors.indigo100,
+                                          color: colorScheme.primary.withOpacity(0.1),
                                           borderRadius: 20.radius,
                                         ),
                                         child: Text(
-                                          _getDaysLeft(event.date).upper,
-                                          style: const TextStyle(
+                                          _getDaysLeft(_currentEvent.date).toUpperCase(),
+                                          style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w900,
-                                            color: AppColors.primaryIndigo,
+                                            color: colorScheme.primary,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  16.height(context),
+                                  const SizedBox(height: 16),
                                   Text(
-                                    event.name,
-                                    style: TextStyle(
-                                      fontSize: context.isMobile ? 24 : 36,
+                                    _currentEvent.name,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
                                       fontWeight: FontWeight.w900,
-                                      color: AppColors.gray900,
                                       letterSpacing: -1,
-                                      height: 1.1,
                                     ),
                                   ),
-                                  12.height(context),
+                                  const SizedBox(height: 12),
                                   Text(
-                                    event.description,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: AppColors.gray600,
+                                    _currentEvent.description,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                                       height: 1.6,
                                     ),
                                   ),
@@ -183,42 +539,50 @@ class EventDetailsScreen extends StatelessWidget {
 
                       // Logistics Card (When & Where)
                       Card(
-                        elevation: 0,
-                        shape: 16.roundBorder.copyWith(
-                          side: BorderSide(color: AppColors.gray200),
-                        ),
                         child: Column(
                           children: [
                             _buildLogisticsItem(
                               context,
-                              Icons.calendar_today_rounded,
-                              'Schedule',
-                              _formatDateRange(event.date, event.endDate),
+                              Icons.play_arrow_rounded,
+                              'Start',
+                              _formatDateTime(_currentEvent.date),
                             ),
-                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1),
+                            _buildLogisticsItem(
+                              context,
+                              Icons.stop_rounded,
+                              'End',
+                              _currentEvent.endDate != null && _currentEvent.endDate!.isNotEmpty
+                                  ? _formatDateTime(_currentEvent.endDate!)
+                                  : 'N/A',
+                            ),
+                            const Divider(height: 1),
                             _buildLogisticsItem(
                               context,
                               Icons.location_on_rounded,
                               'Location',
-                              event.location,
+                              _currentEvent.location,
                               isClickable: true,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Opening Location on Map...')),
-                                );
-                              },
+                              onTap: () => _openLocationInMaps(context),
                             ),
-                            const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
+                            const Divider(height: 1),
+                            _buildLogisticsItem(
+                              context,
+                              Icons.category_rounded,
+                              'Type',
+                              _currentEvent.type,
+                            ),
+                            const Divider(height: 1),
                             _buildLogisticsItem(
                               context,
                               Icons.timer_rounded,
                               'Typical Duration',
-                              '${event.duration} hours per session',
+                              '${_currentEvent.duration} hours per session',
                             ),
                           ],
                         ),
                       ),
-                      20.height(context),
+                      const SizedBox(height: 20),
 
                       // Stats Row
                       SingleChildScrollView(
@@ -227,74 +591,69 @@ class EventDetailsScreen extends StatelessWidget {
                           children: [
                             _buildStatBadge(
                               context,
-                              event.audienceSize?.toString() ?? '0',
+                              _currentEvent.audienceSize?.toString() ?? '0',
                               'Capacity',
                               Icons.group_rounded,
-                              AppColors.primaryIndigo,
+                              colorScheme.primary,
                             ),
-                            12.width,
+                            const SizedBox(width: 12),
                             _buildStatBadge(
                               context,
-                              event.attendeeCount?.toString() ?? '0',
+                              _currentEvent.attendeeCount?.toString() ?? '0',
                               'Registered',
                               Icons.person_add_rounded,
-                              AppColors.success,
-                            ),
-                            12.width,
-                            _buildStatBadge(
-                              context,
-                              event.planningMode == 'automated' ? 'AI' : 'Manual',
-                              'Mode',
-                              event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note_rounded,
-                              AppColors.primaryPurple,
+                              Colors.green,
                             ),
                           ],
                         ),
                       ).paddingHorizontal(context, 4),
-                      24.height(context),
+                      const SizedBox(height: 24),
 
                     // Action cards Grid
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: crossAxisCount,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: context.isMobile
-                          ? 1.9
-                          : crossAxisCount >= 4
-                              ? 1.1
-                              : 1.35,
-                      children: [
-                        _buildActionCard(
-                          context,
-                          title: 'Agenda',
-                          subtitle: '${agendaItems.length} items',
-                          icon: Icons.list_alt,
-                          iconColor: AppColors.primaryIndigo,
-                          iconBg: AppColors.indigo100,
-                          onTap: () => onNavigate('agenda-view'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Attendees',
-                          subtitle: '${attendees.length} registered',
-                          icon: Icons.people,
-                          iconColor: AppColors.success,
-                          iconBg: AppColors.statusOngoing,
-                          onTap: () => onNavigate('attendees'),
-                        ),
-                        _buildActionCard(
-                          context,
-                          title: 'Feedback',
-                          subtitle: 'Collect responses',
-                          icon: Icons.feedback,
-                          iconColor: AppColors.primaryPurple,
-                          iconBg: AppColors.statusCompleted,
-                          onTap: () => onNavigate('feedback-collection'),
-                        ),
-                      ],
-                    ),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final effectiveWidth = (constraints.maxWidth).clamp(0.0, double.infinity);
+                      final computedCount = math.max(1, (effectiveWidth / 320).floor());
+                      final crossAxisCount = context.isMobile ? 1 : computedCount.clamp(1, 4);
+
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: context.isMobile ? 2.5 : 1.5,
+                        children: [
+                          _buildActionCard(
+                            context,
+                            title: 'Agenda',
+                            subtitle: _currentEvent.agenda != null && _currentEvent.agenda!.isNotEmpty
+                                ? '1 item'
+                                : widget.agendaItems.isNotEmpty
+                                    ? '${widget.agendaItems.length} items'
+                                    : 'No agenda',
+                            icon: Icons.list_alt,
+                            iconColor: colorScheme.primary,
+                            onTap: () => widget.onNavigate('agenda-view'),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: 'Attendees',
+                            subtitle: '${_currentEvent.attendeeCount ?? 0} registered',
+                            icon: Icons.people,
+                            iconColor: Colors.green,
+                            onTap: () => widget.onNavigate('attendees'),
+                          ),
+                          _buildActionCard(
+                            context,
+                            title: 'Feedback',
+                            subtitle: 'Reviews',
+                            icon: Icons.feedback_outlined,
+                            iconColor: colorScheme.secondary,
+                            onTap: () => widget.onNavigate('feedback-collection'),
+                          ),
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 32),
                     ],
                   ).paddingHorizontal(context, horizontalPadding),
@@ -307,6 +666,106 @@ class EventDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+        },
+      ),
+    );
+  }
+
+  Widget _buildJoinLeaveBar(BuildContext context, EventActionsState state) {
+    if (_isOwner) return const SizedBox.shrink();
+
+    // Check if event has ended
+    final isEventEnded = _isEventEnded();
+    if (isEventEnded) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isJoined = _currentEvent.isJoined;
+    final isLoading = state is EventActionLoading;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: isLoading
+              ? null
+              : () {
+                  // Store previous state BEFORE optimistic update for success message
+                  _previousJoinState = _currentEvent.isJoined;
+                  
+                  // Optimistically update UI immediately for better UX
+                  final previousIsJoined = _currentEvent.isJoined;
+                  final previousCount = _currentEvent.attendeeCount ?? 0;
+                  
+                  setState(() {
+                    final newIsJoined = !_currentEvent.isJoined;
+                    _currentEvent = Event(
+                      id: _currentEvent.id,
+                      name: _currentEvent.name,
+                      description: _currentEvent.description,
+                      location: _currentEvent.location,
+                      type: _currentEvent.type,
+                      date: _currentEvent.date,
+                      endDate: _currentEvent.endDate,
+                      duration: _currentEvent.duration,
+                      audienceSize: _currentEvent.audienceSize,
+                      planningMode: _currentEvent.planningMode,
+                      status: _currentEvent.status,
+                      createdAt: _currentEvent.createdAt,
+                      createdBy: _currentEvent.createdBy,
+                      attendeeCount: newIsJoined ? previousCount + 1 : (previousCount >= 1 ? previousCount - 1 : 0),
+                      latitude: _currentEvent.latitude,
+                      longitude: _currentEvent.longitude,
+                      image: _currentEvent.image,
+                      isJoined: newIsJoined,
+                      agenda: _currentEvent.agenda, // Preserve agenda
+                    );
+                  });
+                  
+                  // Trigger the API call - listener will update with server response
+                  context.read<EventActionsBloc>().add(
+                        ToggleJoinLeave(eventId: _currentEvent.id, token: widget.token),
+                      );
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isJoined ? Colors.red.withOpacity(0.1) : theme.primaryColor,
+            foregroundColor: isJoined ? Colors.red : Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            elevation: isJoined ? 0 : 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isJoined ? Icons.event_busy : Icons.event_available,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isJoined ? 'Leave Community' : 'Join Community',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
   }
 
   Widget _buildLogisticsItem(
@@ -316,84 +775,79 @@ class EventDetailsScreen extends StatelessWidget {
     String value, 
     {bool isClickable = false, VoidCallback? onTap}
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: 12.radius,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.05),
+                borderRadius: 12.radius,
+              ),
+              child: Icon(icon, size: 20, color: colorScheme.primary),
             ),
-            child: Icon(icon, size: 20, color: AppColors.primaryIndigo),
-          ),
-          16.width,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.gray500,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.hintColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gray900,
+                  Text(
+                    value,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          if (isClickable)
-            const Icon(Icons.chevron_right_rounded, color: AppColors.gray400),
-        ],
-      ).paddingAll(context, 16),
+            if (isClickable)
+              Icon(Icons.chevron_right_rounded, color: theme.hintColor),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildStatBadge(BuildContext context, String value, String label, IconData icon, Color color) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color,
         borderRadius: 16.radius,
-        border: Border.all(color: AppColors.gray200),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: color),
-          10.width,
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.gray900,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray500,
-                  letterSpacing: 0.2,
-                ),
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
               ),
             ],
           ),
@@ -408,61 +862,47 @@ class EventDetailsScreen extends StatelessWidget {
     required String subtitle,
     required IconData icon,
     required Color iconColor,
-    required Color iconBg,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        onTap: onTap,
         borderRadius: 16.radius,
-        border: Border.all(color: AppColors.gray200),
-        boxShadow: [
-          BoxShadow(
-            color: iconColor.withOpacity(0.05),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconBg.withOpacity(0.15),
-              borderRadius: 12.radius,
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          Column(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.gray900,
-                  letterSpacing: -0.4,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: 12.radius,
                 ),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
-              4.height(context),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.gray500,
-                  fontWeight: FontWeight.w500,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ).paddingAll(context, 16),
-    ).onClick(onTap);
+        ),
+      ),
+    );
   }
 
   String _getDaysLeft(String dateStr) {
@@ -488,7 +928,6 @@ class EventDetailsScreen extends StatelessWidget {
       
       if (endStr != null && endStr.isNotEmpty) {
         final end = DateTime.parse(endStr).toLocal();
-        // If same month and year, simplify
         if (start.month == end.month && start.year == end.year) {
           if (start.day == end.day) return startFmt;
           return '${months[start.month - 1]} ${start.day} - ${end.day}, ${start.year}';
@@ -508,6 +947,269 @@ class EventDetailsScreen extends StatelessWidget {
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (e) {
       return dateStr;
+    }
+  }
+
+  String _formatTime(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      final hour = date.hour;
+      final minute = date.minute;
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  String _formatDateTime(String dateStr) {
+    try {
+      final dateTime = DateTime.parse(dateStr).toLocal();
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      
+      final date = '${days[dateTime.weekday - 1]}, ${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+      final time = _formatTime(dateStr);
+      
+      return '$date at $time';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  String _formatDateTimeRange(String startStr, String? endStr) {
+    try {
+      final start = DateTime.parse(startStr).toLocal();
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      String startFmt = '${months[start.month - 1]} ${start.day}, ${start.year}';
+      String startTime = _formatTime(startStr);
+      
+      if (endStr != null && endStr.isNotEmpty) {
+        final end = DateTime.parse(endStr).toLocal();
+        String endTime = _formatTime(endStr);
+        
+        if (start.month == end.month && start.year == end.year) {
+          if (start.day == end.day) {
+            return '$startFmt\n$startTime - $endTime';
+          }
+          String endFmt = '${months[end.month - 1]} ${end.day}, ${start.year}';
+          return '$startFmt - $endFmt\n$startTime - $endTime';
+        }
+        String endFmt = '${months[end.month - 1]} ${end.day}, ${end.year}';
+        return '$startFmt - $endFmt\n$startTime - $endTime';
+      }
+      return '$startFmt\n$startTime';
+    } catch (e) {
+      return startStr;
+    }
+  }
+
+  Future<void> _openLocationInMaps(BuildContext context) async {
+    // Check if event has coordinates
+    if (widget.event.latitude == null || widget.event.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location coordinates not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      Position? userPosition;
+
+      // Try to get user's current location
+      if (kIsWeb) {
+        // Web: Use browser geolocation API
+        try {
+          userPosition = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        } catch (e) {
+          debugPrint('Error getting user location on web: $e');
+          // Continue without user location - Google Maps will use browser location
+        }
+      } else {
+        // Mobile: Use permission handler and geolocator
+        final permissionStatus = await Permission.location.request();
+
+        if (permissionStatus.isGranted) {
+          try {
+            // Check if location services are enabled
+            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (serviceEnabled) {
+              userPosition = await Geolocator.getCurrentPosition(
+                desiredAccuracy: LocationAccuracy.high,
+              );
+            }
+          } catch (e) {
+            debugPrint('Error getting user location: $e');
+            // Continue without user location - Google Maps will use device location
+          }
+        }
+      }
+
+      bool launched = false;
+
+      // Web: Directly use web URL (no native apps available)
+      if (kIsWeb) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            // Include user location for directions
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
+                '&travelmode=driving';
+          } else {
+            // Just destination - Google Maps will prompt for user location or use browser location
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
+                '&travelmode=driving';
+          }
+
+          final uri = Uri.parse(mapsUrl);
+          // On web, use platformDefault which opens in new tab (more reliable than externalApplication)
+          // externalApplication might be blocked by browser pop-up blockers
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+          // Show error message on web if launch fails
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Could not open Google Maps. Please check your browser settings.'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: () => _openLocationInMaps(context),
+                ),
+              ),
+            );
+          }
+        }
+      }
+
+      // Try different URL schemes based on platform (skip if web, already handled)
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        // Android: Try multiple schemes with error handling
+        List<Uri> urisToTry = [];
+
+        if (userPosition != null) {
+          // Try google.navigation: for turn-by-turn navigation
+          urisToTry.add(Uri.parse(
+            'google.navigation:q=${widget.event.latitude},${widget.event.longitude}',
+          ));
+
+          // Try comgooglemaps:// with directions
+          urisToTry.add(Uri.parse(
+            'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${widget.event.latitude},${widget.event.longitude}&directionsmode=driving',
+          ));
+        }
+
+        // Try geo: scheme (works with any map app)
+        urisToTry.add(Uri.parse(
+          'geo:${widget.event.latitude},${widget.event.longitude}?q=${widget.event.latitude},${widget.event.longitude}(${Uri.encodeComponent(widget.event.name)})',
+        ));
+
+        // Try comgooglemaps:// without directions
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${widget.event.latitude},${widget.event.longitude}',
+        ));
+
+        // Try each URI
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        // iOS: Try Apple Maps first, then Google Maps
+        List<Uri> urisToTry = [];
+
+        if (userPosition != null) {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${widget.event.latitude},${widget.event.longitude}&dirflg=d',
+          ));
+        } else {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?q=${widget.event.latitude},${widget.event.longitude}',
+          ));
+        }
+
+        // Fallback to Google Maps on iOS
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${widget.event.latitude},${widget.event.longitude}',
+        ));
+
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      }
+
+      // Fallback to web URL for all platforms (always works)
+      if (!launched) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
+                '&travelmode=driving';
+          } else {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${widget.event.latitude},${widget.event.longitude}'
+                '&travelmode=driving';
+          }
+
+          final uri = Uri.parse(mapsUrl);
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+        }
+      }
+
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open maps application. Please install Google Maps.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening maps: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening maps: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

@@ -19,6 +19,16 @@ class CreateEventSubmitted extends CreateEventEvent {
   List<Object> get props => [request, token];
 }
 
+class UpdateEventSubmitted extends CreateEventEvent {
+  final UpdateEventRequest request;
+  final String token;
+
+  const UpdateEventSubmitted({required this.request, required this.token});
+
+  @override
+  List<Object> get props => [request, token];
+}
+
 class CreateEventFileUploading extends CreateEventEvent {
   final XFile file;
   final String token;
