@@ -18,6 +18,7 @@ class CreateEventScreen extends StatefulWidget {
   final VoidCallback onBack;
   final User user;
   final String token;
+  final Event? eventToEdit;
 
   const CreateEventScreen({
     super.key,
@@ -25,6 +26,7 @@ class CreateEventScreen extends StatefulWidget {
     required this.onBack,
     required this.user,
     required this.token,
+    this.eventToEdit,
   });
 
   @override
@@ -43,7 +45,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   DateTime? _endDate;
   final _durationController = TextEditingController();
   final _audienceSizeController = TextEditingController();
-  final String _planningMode = 'automated';
+  String _planningMode = 'automated';
   
   // State for location selection
   List<Map<String, dynamic>> _allLocations = [];
@@ -56,6 +58,23 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   void initState() {
     super.initState();
     _loadLocations();
+    if (widget.eventToEdit != null) {
+      final e = widget.eventToEdit!;
+      _nameController.text = e.name;
+      _descriptionController.text = e.description;
+      _locationController.text = e.location;
+      _selectedType = e.type;
+      _startDate = DateTime.tryParse(e.date);
+      _endDate = e.endDate != null ? DateTime.tryParse(e.endDate!) : null;
+      _durationController.text = e.duration.toString();
+      _audienceSizeController.text = e.audienceSize?.toString() ?? '';
+      _selectedLat = e.latitude;
+      _selectedLng = e.longitude;
+      _planningMode = e.planningMode;
+      if (e.image != null) {
+        _attachments.add(e.image!);
+      }
+    }
   }
 
   Future<void> _loadLocations() async {
@@ -91,24 +110,46 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   void _handleSubmit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      final request = CreateEventRequest(
-        name: _nameController.text,
-        startDate: _startDate!.toUtc().toIso8601String(),
-        endDate: _endDate?.toUtc().toIso8601String() ?? _startDate!.toUtc().toIso8601String(),
-        description: _descriptionController.text,
-        attachments: _attachments,
-        hoursInDay: int.parse(_durationController.text),
-        eventType: _selectedType,
-        otherEventType: _selectedType == 'other' ? 'library type event' : null,
-        expectedAudienceSize: int.parse(_audienceSizeController.text),
-        location: _locationController.text,
-        lat: _selectedLat?.toString() ?? "0.0",
-        long: _selectedLng?.toString() ?? "0.0",
-      );
+      if (widget.eventToEdit != null) {
+        final request = UpdateEventRequest(
+          id: widget.eventToEdit!.id,
+          name: _nameController.text,
+          startDate: _startDate!.toUtc().toIso8601String(),
+          endDate: _endDate?.toUtc().toIso8601String() ?? _startDate!.toUtc().toIso8601String(),
+          description: _descriptionController.text,
+          attachments: _attachments,
+          hoursInDay: int.parse(_durationController.text),
+          eventType: _selectedType,
+          otherEventType: _selectedType == 'other' ? 'library type event' : null,
+          expectedAudienceSize: int.parse(_audienceSizeController.text),
+          location: _locationController.text,
+          lat: _selectedLat?.toString() ?? "0.0",
+          long: _selectedLng?.toString() ?? "0.0",
+        );
 
-      context.read<CreateEventBloc>().add(
-        CreateEventSubmitted(request: request, token: widget.token),
-      );
+        context.read<CreateEventBloc>().add(
+          UpdateEventSubmitted(request: request, token: widget.token),
+        );
+      } else {
+        final request = CreateEventRequest(
+          name: _nameController.text,
+          startDate: _startDate!.toUtc().toIso8601String(),
+          endDate: _endDate?.toUtc().toIso8601String() ?? _startDate!.toUtc().toIso8601String(),
+          description: _descriptionController.text,
+          attachments: _attachments,
+          hoursInDay: int.parse(_durationController.text),
+          eventType: _selectedType,
+          otherEventType: _selectedType == 'other' ? 'library type event' : null,
+          expectedAudienceSize: int.parse(_audienceSizeController.text),
+          location: _locationController.text,
+          lat: _selectedLat?.toString() ?? "0.0",
+          long: _selectedLng?.toString() ?? "0.0",
+        );
+
+        context.read<CreateEventBloc>().add(
+          CreateEventSubmitted(request: request, token: widget.token),
+        );
+      }
     }
   }
 
@@ -120,24 +161,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         listener: (context, state) {
           if (state is CreateEventSuccess) {
             final data = state.response.data!;
-            final event = Event(
-              id: data.id,
-              name: data.name,
-              description: data.description,
-              location: data.location,
-              type: data.eventType,
-              date: data.startDate,
-              endDate: data.endDate,
-              duration: data.hoursInDay,
-              audienceSize: data.expectedAudienceSize,
-              planningMode: _planningMode,
-              status: 'draft',
-              createdAt: data.createdAt,
-              createdBy: widget.user.id,
-              attendeeCount: 0,
-              latitude: data.coordinates?.coordinates[1],
-              longitude: data.coordinates?.coordinates[0],
-            );
+            final event = Event.fromEventData(data);
             widget.onCreateEvent(event);
           } else if (state is CreateEventFileUploadSuccess) {
             setState(() {
@@ -160,7 +184,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: widget.onBack,
               ),
-              title: const Text('Create Event'),
+              title: Text(widget.eventToEdit != null ? 'Edit Event' : 'Create Event'),
             ),
             body: state is CreateEventLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -230,9 +254,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Create New Event', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(widget.eventToEdit != null ? 'Edit Event' : 'Create New Event', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text('Enter the basic details of your event', style: TextStyle(color: AppColors.gray600)),
+                Text(widget.eventToEdit != null ? 'Update the basic details of your event' : 'Enter the basic details of your event', style: const TextStyle(color: AppColors.gray600)),
                 const SizedBox(height: 24),
                 
                 TextFormField(
@@ -292,9 +316,34 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                const Text('Attachments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
                 _buildAttachmentsList(context, state),
+                const SizedBox(height: 24),
+
+                const Text('Planning Mode', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPlanningModeCard(
+                        title: 'AI Automated',
+                        subtitle: 'AI will generate your complete agenda',
+                        icon: Icons.auto_awesome,
+                        isSelected: _planningMode == 'automated',
+                        onTap: () => setState(() => _planningMode = 'automated'),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildPlanningModeCard(
+                        title: 'Manual Selection',
+                        subtitle: 'I want to build my own agenda',
+                        icon: Icons.edit_calendar,
+                        isSelected: _planningMode == 'manual',
+                        onTap: () => setState(() => _planningMode = 'manual'),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 32),
 
                 Row(
@@ -302,7 +351,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   children: [
                     OutlinedButton(onPressed: widget.onBack, child: const Text('Cancel')),
                     const SizedBox(width: 12),
-                    ElevatedButton(onPressed: () => _handleSubmit(context), child: const Text('Create Event')),
+                    ElevatedButton(
+                      onPressed: () => _handleSubmit(context),
+                      child: Text(widget.eventToEdit != null ? 'Update Event' : 'Create Event'),
+                    ),
                   ],
                 ),
               ],
@@ -476,6 +528,39 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlanningModeCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryIndigo.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryIndigo : AppColors.gray200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: isSelected ? AppColors.primaryIndigo : AppColors.gray500),
+            const SizedBox(height: 12),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.gray500)),
+          ],
+        ),
       ),
     );
   }

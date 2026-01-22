@@ -42,84 +42,6 @@ class EventDetailsScreen extends StatefulWidget {
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
 }
-//
-// class _EventDetailsScreenState extends State<EventDetailsScreen> {
-//   late Event _currentEvent;
-//   bool _isLoading = false;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _currentEvent = widget.event;
-//   }
-//
-//   bool get _isOwner => widget.user.id == _currentEvent.createdBy;
-//
-//   Future<void> _showEditDialog() async {
-//     final nameController = TextEditingController(text: _currentEvent.name);
-//
-//     final result = await showDialog<String>(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text('Edit Event Name'),
-//         content: TextField(
-//           controller: nameController,
-//           decoration: const InputDecoration(
-//             labelText: 'Event Name',
-//             hintText: 'Enter new event name',
-//           ),
-//           autofocus: true,
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text('Cancel'),
-//           ),
-//           ElevatedButton(
-//             onPressed: () => Navigator.pop(context, nameController.text),
-//             child: const Text('Save'),
-//           ),
-//         ],
-//       ),
-//     );
-//
-//     if (result != null && result.isNotEmpty && result != _currentEvent.name) {
-//       _updateEventName(result);
-//     }
-//   }
-//
-//   Future<void> _updateEventName(String newName) async {
-//     setState(() => _isLoading = true);
-//     try {
-//       final repository = EventRepository(ApiClient());
-//       final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
-//
-//       if (response.status && response.data != null) {
-//         setState(() {
-//           _currentEvent = Event.fromEventData(response.data!);
-//         });
-//         if (mounted) {
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             const SnackBar(content: Text('Event updated successfully')),
-//           );
-//         }
-//       } else {
-//         throw Exception(response.message);
-//       }
-//     } catch (e) {
-//       if (mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
-//         );
-//       }
-//     } finally {
-//       if (mounted) setState(() => _isLoading = false);
-//     }
-//   }
-//
-//   @override
-//   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
-// }
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event _currentEvent;
@@ -183,67 +105,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  Future<void> _showEditDialog() async {
-    final nameController = TextEditingController(text: _currentEvent.name);
-
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Event Name'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Event Name',
-            hintText: 'Enter new event name',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, nameController.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (result != null && result.isNotEmpty && result != _currentEvent.name) {
-      _updateEventName(result);
-    }
-  }
-
-  Future<void> _updateEventName(String newName) async {
-    setState(() => _isLoading = true);
-    try {
-      final repository = EventRepository(ApiClient());
-      final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
-
-      if (response.status && response.data != null) {
-        setState(() {
-          _currentEvent = Event.fromEventData(response.data!);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event updated successfully')),
-          );
-        }
-      } else {
-        throw Exception(response.message);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -373,10 +234,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         actions: [
           if (_isOwner)
             IconButton(
-              icon: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.edit_outlined),
-              onPressed: _isLoading ? null : _showEditDialog,
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => widget.onNavigate('edit-event'),
               tooltip: 'Edit Event',
             ),
           const SizedBox(width: 8),
@@ -622,8 +481,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           _buildActionCard(
                             context,
                             title: 'Feedback',
-                            subtitle: 'Collect responses',
-                            icon: Icons.feedback,
+                            subtitle: 'Reviews',
+                            icon: Icons.feedback_outlined,
                             iconColor: colorScheme.secondary,
                             onTap: () => widget.onNavigate('feedback-collection'),
                           ),
