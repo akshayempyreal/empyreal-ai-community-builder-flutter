@@ -88,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Stack(
               children: [
                 const Icon(Icons.notifications_outlined),
-                if (unreadCount > 0)
+                if (widget.unreadCount > 0)
                   Positioned(
                     right: 0,
                     top: 0,
@@ -103,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         minHeight: 14,
                       ),
                       child: Text(
-                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        widget.unreadCount > 9 ? '9+' : widget.unreadCount.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 8,
@@ -115,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
               ],
             ),
-            onPressed: onNavigateToNotifications,
+            onPressed: widget.onNavigateToNotifications,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -126,12 +126,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   Widget avatar = CircleAvatar(
                     backgroundColor: AppTheme.indigo100,
-                    backgroundImage: user.profilePic != null && user.profilePic!.isNotEmpty
-                        ? NetworkImage(user.profilePic!.fixImageUrl)
+                    backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
+                        ? NetworkImage(widget.user.profilePic!.fixImageUrl)
                         : null,
-                    child: user.profilePic == null || user.profilePic!.isEmpty
+                    child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
                         ? Text(
-                            user.name.firstChar.upper,
+                            widget.user.name.firstChar.upper,
                             style: const TextStyle(color: AppTheme.primaryIndigo),
                           )
                         : null,
@@ -148,7 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.name,
+                            widget.user.name,
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -159,21 +159,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               itemBuilder: (context) => [
                 PopupMenuItem(
-                  onTap: onNavigateToProfile,
+                  onTap: widget.onNavigateToProfile,
                   child: const ListTile(
                     leading: Icon(Icons.person_outline),
                     title: Text('Profile'),
                   ),
                 ),
                 PopupMenuItem(
-                  onTap: onNavigateToSettings,
+                  onTap: widget.onNavigateToSettings,
                   child: const ListTile(
                     leading: Icon(Icons.settings_outlined),
                     title: Text('Settings'),
                   ),
                 ),
                 PopupMenuItem(
-                  onTap: onLogout,
+                  onTap: widget.onLogout,
                   child: const ListTile(
                     leading: Icon(Icons.logout),
                     title: Text('Logout'),
@@ -191,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             // Welcome section
             Text(
-              'Welcome back, ${user.name.split(' ')[0]}! 👋',
+              'Welcome back, ${widget.user.name.split(' ')[0]}! 👋',
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -244,7 +244,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-            ),
           );
         },
       ),

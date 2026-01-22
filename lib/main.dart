@@ -45,25 +45,28 @@ void main() async {
   
   // Initialize Firebase only on mobile platforms (skip on web)
   if (!kIsWeb) {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
 
-    // Enable Crashlytics collection
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+      // Enable Crashlytics collection
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
 
-    // Pass all uncaught "fatal" errors from the framework to Crashlytics
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
-    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
-  }
-
-  // Setup FCM using the new service only on mobile
-  if (!kIsWeb) {
-    await NotificationService().initialize();
+      // Pass all uncaught "fatal" errors from the framework to Crashlytics
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+      
+      // Setup FCM using the new service only on mobile
+      await NotificationService().initialize();
+    } catch (e) {
+      debugPrint('Firebase initialization error: $e');
+      // Continue app execution even if Firebase fails
+    }
   }
 
   runApp(const MyApp());
