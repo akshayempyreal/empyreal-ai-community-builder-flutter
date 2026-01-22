@@ -44,6 +44,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  EventOwnership _selectedOwnership = EventOwnership.other;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -52,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           request: EventListRequest(
             page: 1, 
             limit: 10, 
-            ownBy: EventOwnership.all, 
+            ownBy: _selectedOwnership, 
             status: EventStatus.upcoming,
           ),
           token: widget.token,
@@ -209,12 +211,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Your Events',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      _buildOwnershipToggle(context),
                       if (isLoading)
                         const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                     ],
@@ -402,6 +399,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primaryIndigo,
         minimumSize: const Size(140, 48),
+      ),
+    );
+  }
+
+  Widget _buildOwnershipToggle(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildToggleItem(context, 'Others Event', EventOwnership.other),
+          _buildToggleItem(context, 'Own Events', EventOwnership.me),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleItem(BuildContext context, String title, EventOwnership ownership) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = _selectedOwnership == ownership;
+
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          setState(() {
+            _selectedOwnership = ownership;
+          });
+          context.read<EventListBloc>().add(FetchEventList(
+                request: EventListRequest(
+                  page: 1,
+                  limit: 10,
+                  ownBy: ownership,
+                  status: EventStatus.upcoming,
+                ),
+                token: widget.token,
+              ));
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          title,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

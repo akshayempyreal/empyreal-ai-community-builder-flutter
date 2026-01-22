@@ -128,6 +128,7 @@ class _CreateEventViewState extends State<_CreateEventView> {
         planningMode: state.planningMode,
         status: 'draft',
         createdAt: DateTime.now().toIso8601String(),
+        createdBy: widget.user.id,
         attendeeCount: 0,
         latitude: state.latitude,
         longitude: state.longitude,

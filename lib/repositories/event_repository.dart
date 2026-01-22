@@ -63,4 +63,16 @@ class EventRepository {
     );
     return EventListResponse.fromJson(response.data);
   }
+
+  Future<CreateEventResponse> updateEvent(String id, String name, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/update',
+      data: {
+        'id': id,
+        'name': name,
+      },
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
 }
