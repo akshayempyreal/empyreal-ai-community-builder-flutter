@@ -74,7 +74,7 @@ class NotificationService {
     _configureFCM();
 
     // Get initial token
-    await _logToken();
+    await getToken();
   }
 
   Future<void> _requestPermissions() async {
@@ -137,16 +137,19 @@ class NotificationService {
     });
   }
 
-  Future<void> _logToken() async {
+  /// Gets the current FCM token
+  Future<String?> getToken() async {
     try {
       String? token = await _fcm.getToken();
       if (kDebugMode) {
         print('FCM: Token: $token');
       }
+      return token;
     } catch (e) {
       if (kDebugMode) {
         print('FCM: Error getting token: $e');
       }
+      return null;
     }
   }
 }

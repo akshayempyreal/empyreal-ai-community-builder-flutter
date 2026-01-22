@@ -20,6 +20,9 @@ class DashboardScreen extends StatefulWidget {
   final Function(Event) onSelectEvent;
   final VoidCallback onLogout;
   final VoidCallback onNavigateToProfile;
+  final VoidCallback onNavigateToSettings;
+  final VoidCallback onNavigateToNotifications;
+  final int unreadCount;
 
   const DashboardScreen({
     super.key,
@@ -29,6 +32,9 @@ class DashboardScreen extends StatefulWidget {
     required this.onSelectEvent,
     required this.onLogout,
     required this.onNavigateToProfile,
+    required this.onNavigateToSettings,
+    required this.onNavigateToNotifications,
+    required this.unreadCount,
   });
 
   @override
@@ -55,89 +61,151 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           final stats = _calculateStats(events);
 
-          return Scaffold(
-            backgroundColor: AppTheme.gray50,
-            appBar: AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              title: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text('AI Event Builder'),
-                ],
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () {
-                    context.read<EventListBloc>().add(FetchEventList(
-                      request: EventListRequest(page: 1, limit: 10, ownBy: 'all', status: 'upcoming'),
-                      token: widget.token,
-                    ));
-                  },
+    return Scaffold(
+      backgroundColor: AppTheme.gray50,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: PopupMenuButton(
-                    child: avatarWidget(),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        onTap: widget.onNavigateToProfile,
-                        child: const ListTile(
-                          leading: Icon(Icons.person_outline),
-                          title: Text('Profile'),
-                        ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('AI Event Builder'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(Icons.notifications_outlined),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.red500,
+                        shape: BoxShape.circle,
                       ),
-                      PopupMenuItem(
-                        onTap: widget.onLogout,
-                        child: const ListTile(
-                          leading: Icon(Icons.logout),
-                          title: Text('Logout'),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Text(
+                        unreadCount > 9 ? '9+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: onNavigateToNotifications,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: PopupMenuButton(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmall = MediaQuery.of(context).size.width < 600;
+
+                  Widget avatar = CircleAvatar(
+                    backgroundColor: AppTheme.indigo100,
+                    backgroundImage: user.profilePic != null && user.profilePic!.isNotEmpty
+                        ? NetworkImage(user.profilePic!.fixImageUrl)
+                        : null,
+                    child: user.profilePic == null || user.profilePic!.isEmpty
+                        ? Text(
+                            user.name.firstChar.upper,
+                            style: const TextStyle(color: AppTheme.primaryIndigo),
+                          )
+                        : null,
+                  );
+
+                  if (isSmall) return avatar;
+
+                  return Row(
+                    children: [
+                      avatar,
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ),
                     ],
+                  );
+                }
+              ),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  onTap: onNavigateToProfile,
+                  child: const ListTile(
+                    leading: Icon(Icons.person_outline),
+                    title: Text('Profile'),
+                  ),
+                ),
+                PopupMenuItem(
+                  onTap: onNavigateToSettings,
+                  child: const ListTile(
+                    leading: Icon(Icons.settings_outlined),
+                    title: Text('Settings'),
+                  ),
+                ),
+                PopupMenuItem(
+                  onTap: onLogout,
+                  child: const ListTile(
+                    leading: Icon(Icons.logout),
+                    title: Text('Logout'),
                   ),
                 ),
               ],
             ),
-            body: RefreshIndicator(
-              onRefresh: () async {
-                context.read<EventListBloc>().add(FetchEventList(
-                  request: EventListRequest(page: 1, limit: 10, ownBy: 'all', status: 'upcoming'),
-                  token: widget.token,
-                ));
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back, ${widget.user.name.split(' ')[0]}! 👋',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.gray900,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Here's what's happening with your events",
-                      style: TextStyle(fontSize: 16, color: AppTheme.gray600),
-                    ),
-                    const SizedBox(height: 32),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome section
+            Text(
+              'Welcome back, ${user.name.split(' ')[0]}! 👋',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.gray900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Here's what's happening with your events",
+              style: TextStyle(fontSize: 16, color: AppTheme.gray600),
+            ),
+            const SizedBox(height: 32),
 
                     // Stats grid
                     _buildStatsGrid(stats),
@@ -187,7 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = MediaQuery.of(context).size.width < 600;
-        
+
         Widget avatar = CircleAvatar(
           backgroundColor: AppTheme.indigo100,
           backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
@@ -223,7 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final width = constraints.maxWidth;
         final crossAxisCount = width > 800 ? 4 : 2;
         final aspectRatio = width > 800 ? 1.5 : (width > 600 ? 1.3 : 1.0);
-        
+
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -278,7 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isSmall = constraints.maxWidth < 600;
-          return isSmall 
+          return isSmall
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -377,7 +445,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth <= 700;
-        
+
         if (isMobile) {
           return Column(
             children: events.map((event) => Padding(
@@ -391,7 +459,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         final crossAxisCount = constraints.maxWidth > 1200 ? 3 : 2;
-        
+
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

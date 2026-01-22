@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../repositories/auth_repository.dart';
 import '../../models/auth_models.dart';
+import '../../services/notification_service.dart';
 import 'otp_event.dart';
 import 'otp_state.dart';
 
@@ -36,7 +39,17 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
   ) async {
     // Re-use login API for resending OTP
     try {
-      final request = LoginRequest(mobileNo: event.mobileNo);
+      final String? deviceToken = await NotificationService().getToken();
+      String deviceType = 'Web';
+      if (!kIsWeb) {
+        deviceType = Platform.isAndroid ? 'Android' : 'iOS';
+      }
+
+      final request = LoginRequest(
+        mobileNo: event.mobileNo,
+        deviceToken: deviceToken ?? '',
+        deviceType: deviceType,
+      );
       final response = await _authRepository.login(request);
       if (response.status) {
         emit(OtpResendSuccess(response.message));

@@ -62,6 +62,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
   }
 
   void _handleLogin() {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState!.validate()) {
       final fullMobileNo =
           '${_countryCodeController.text.trim()}${_mobileController.text.trim()}';

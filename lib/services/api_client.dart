@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import '../core/constants/api_constants.dart';
 
 class ApiClient {
+  static const String baseUrl = 'https://j6xnc2h8-3001.inc1.devtunnels.ms';
+  
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: ApiConstants.baseUrl,
