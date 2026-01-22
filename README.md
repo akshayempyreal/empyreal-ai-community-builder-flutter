@@ -1,4 +1,4 @@
-# Empyreal AI Community Builder (EvoMeet)
+# EvoMeet
 
 A comprehensive Flutter application designed for building, managing, and engaging with AI communities. This platform enables seamless event organization, agenda planning (both manual and AI-powered), attendee management, and real-time feedback collection.
 
