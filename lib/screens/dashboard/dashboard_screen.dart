@@ -157,32 +157,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
               elevation: 0,
               title: Row(
                 children: [
-                  // App Logo Placeholder
+                  // App Logo
                   Container(
-                    height: 36,
-                    width: 36,
+                    height: 38,
+                    width: 38,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryIndigo.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        )
-                      ],
                     ),
-                    child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'E',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'AI Event Builder',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    'EvoMeet',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.gray900,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],

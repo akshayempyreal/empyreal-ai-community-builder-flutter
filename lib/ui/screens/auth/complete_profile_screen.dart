@@ -95,44 +95,59 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               24.height(context),
                               
                               // Profile Picture Picker
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      width: 120,
-                                      height: 120,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.gray100,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: AppColors.primaryIndigo, width: 2),
-                                        image: _imageFile != null
-                                            ? DecorationImage(
-                                                image: kIsWeb 
-                                                    ? NetworkImage(_imageFile!.path) as ImageProvider
-                                                    : FileImage(File(_imageFile!.path)),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                      ),
-                                      child: _imageFile == null
-                                          ? const Icon(Icons.person, size: 60, color: AppColors.gray400)
-                                          : null,
-                                    ),
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primaryIndigo,
-                                          shape: BoxShape.circle,
+                              Column(
+                                children: [
+                                  GestureDetector(
+                                    onTap: _pickImage,
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          width: 120,
+                                          height: 120,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.gray100,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: _imageFile == null && state is! CompleteProfileLoading ? Colors.red.withOpacity(0.5) : AppColors.primaryIndigo,
+                                              width: 2,
+                                            ),
+                                            image: _imageFile != null
+                                                ? DecorationImage(
+                                                    image: kIsWeb 
+                                                        ? NetworkImage(_imageFile!.path) as ImageProvider
+                                                        : FileImage(File(_imageFile!.path)),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                          ),
+                                          child: _imageFile == null
+                                              ? const Icon(Icons.person, size: 60, color: AppColors.gray400)
+                                              : null,
                                         ),
-                                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.primaryIndigo,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (_imageFile == null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        'Profile picture is required',
+                                        style: TextStyle(color: Colors.red.shade700, fontSize: 12),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                ],
                               ),
                               32.height(context),
                               
@@ -157,7 +172,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: state is CompleteProfileLoading
+                                  onPressed: state is CompleteProfileLoading || _imageFile == null
                                       ? null
                                       : () {
                                           FocusScope.of(context).unfocus();

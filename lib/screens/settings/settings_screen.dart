@@ -218,18 +218,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'Empyreal AI Event Builder',
+      applicationName: 'EvoMeet',
       applicationVersion: '1.0.0',
       applicationIcon: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
-          ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.calendar_today, color: Colors.white, size: 24),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    'E',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
       children: [
         const Text(
