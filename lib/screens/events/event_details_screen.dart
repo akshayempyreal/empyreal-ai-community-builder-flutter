@@ -183,12 +183,43 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  Future<void> _showEditDialog() async {
+  Future<void> _showDeleteDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Event'),
+        content: Text(
+          'Are you sure you want to delete "${_currentEvent.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isLoading = true);
+      // Use the context from the BlocConsumer builder which has access to BlocProvider
+      context.read<EventActionsBloc>().add(
+        DeleteEvent(eventId: _currentEvent.id, token: widget.token),
+      );
+    }
+  }
+
+  Future<void> _showEditDialog(BuildContext context) async {
     final nameController = TextEditingController(text: _currentEvent.name);
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Event Name'),
         content: TextField(
           controller: nameController,
@@ -200,11 +231,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, nameController.text),
+            onPressed: () => Navigator.pop(dialogContext, nameController.text),
             child: const Text('Save'),
           ),
         ],
@@ -255,7 +286,31 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       create: (context) => EventActionsBloc(EventRepository(ApiClient())),
       child: BlocConsumer<EventActionsBloc, EventActionsState>(
         listener: (context, state) {
-          if (state is EventJoinLeaveSuccess) {
+          if (state is DeleteEventSuccess) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              // Navigate back to dashboard after successful deletion
+              widget.onBack();
+            }
+          } else if (state is EventActionFailure) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.error),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else if (state is EventJoinLeaveSuccess) {
             // Use stored previous join status to determine the action taken
             // This was set before the optimistic update in the button handler
             final wasJoined = _previousJoinState ?? _currentEvent.isJoined;
@@ -376,8 +431,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               icon: _isLoading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.edit_outlined),
-              onPressed: _isLoading ? null : _showEditDialog,
+              onPressed: _isLoading ? null : () => _showEditDialog(context),
               tooltip: 'Edit Event',
+            ),
+          if (_isOwner)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: _isLoading ? null : () => _showDeleteDialog(context),
+              tooltip: 'Delete Event',
             ),
           const SizedBox(width: 8),
           Padding(

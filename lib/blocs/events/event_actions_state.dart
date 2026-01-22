@@ -29,3 +29,12 @@ class EventActionFailure extends EventActionsState {
   @override
   List<Object?> get props => [error];
 }
+
+class DeleteEventSuccess extends EventActionsState {
+  final String message;
+
+  const DeleteEventSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

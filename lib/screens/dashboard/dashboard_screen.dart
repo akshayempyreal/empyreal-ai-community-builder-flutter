@@ -277,14 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 32),
 
                   // Events list header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildOwnershipToggle(context),
-                      if (isLoading)
-                        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                    ],
-                  ),
+                  _buildOwnershipToggle(context),
                   const SizedBox(height: 16),
 
                   if (state is EventListFailure)

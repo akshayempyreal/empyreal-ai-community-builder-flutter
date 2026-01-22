@@ -269,3 +269,23 @@ class SaveAgendaResponse {
     );
   }
 }
+
+class DeleteEventResponse {
+  final bool status;
+  final String message;
+  final Map<String, dynamic>? data;
+
+  DeleteEventResponse({
+    required this.status,
+    required this.message,
+    this.data,
+  });
+
+  factory DeleteEventResponse.fromJson(Map<String, dynamic> json) {
+    return DeleteEventResponse(
+      status: json['status'] ?? false,
+      message: json['message'] ?? '',
+      data: json['data'] as Map<String, dynamic>?,
+    );
+  }
+}

@@ -8,6 +8,7 @@ class EventActionsBloc extends Bloc<EventActionsEvent, EventActionsState> {
 
   EventActionsBloc(this._eventRepository) : super(EventActionsInitial()) {
     on<ToggleJoinLeave>(_onJoinLeaveEvent);
+    on<DeleteEvent>(_onDeleteEvent);
   }
 
   Future<void> _onJoinLeaveEvent(
@@ -19,6 +20,23 @@ class EventActionsBloc extends Bloc<EventActionsEvent, EventActionsState> {
       final response = await _eventRepository.joinLeaveEvent(event.eventId, event.token);
       if (response.status) {
         emit(EventJoinLeaveSuccess(response));
+      } else {
+        emit(EventActionFailure(response.message));
+      }
+    } catch (e) {
+      emit(EventActionFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteEvent(
+    DeleteEvent event,
+    Emitter<EventActionsState> emit,
+  ) async {
+    emit(EventActionLoading());
+    try {
+      final response = await _eventRepository.deleteEvent(event.eventId, event.token);
+      if (response.status) {
+        emit(DeleteEventSuccess(response.message));
       } else {
         emit(EventActionFailure(response.message));
       }
