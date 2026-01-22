@@ -316,6 +316,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             
             // Clear the stored previous state
             _previousJoinState = null;
+
+            // Navigate back to dashboard after successful join/leave as requested
+            if (mounted) {
+              widget.onBack();
+            }
           } else if (state is EventActionFailure) {
             // Revert optimistic update on failure - restore previous state
             setState(() {
@@ -731,7 +736,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isJoined ? 'Leave This Event' : 'Join This Event',
+                      isJoined ? 'Leave Community' : 'Join Community',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
