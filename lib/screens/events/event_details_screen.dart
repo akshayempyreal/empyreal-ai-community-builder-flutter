@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
 import 'dart:math' as math;
 import '../../models/user.dart';
@@ -8,6 +9,9 @@ import '../../models/attendee.dart';
 import '../../widgets/status_badge.dart';
 import '../../repositories/event_repository.dart';
 import '../../services/api_client.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -47,7 +51,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Future<void> _showEditDialog() async {
     final nameController = TextEditingController(text: _currentEvent.name);
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -83,7 +87,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     try {
       final repository = EventRepository(ApiClient());
       final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
-      
+
       if (response.status && response.data != null) {
         setState(() {
           _currentEvent = Event.fromEventData(response.data!);
@@ -124,7 +128,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         actions: [
           if (_isOwner)
             IconButton(
-              icon: _isLoading 
+              icon: _isLoading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.edit_outlined),
               onPressed: _isLoading ? null : _showEditDialog,
@@ -166,7 +170,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             height: imageHeight,
                             width: double.infinity,
                             color: colorScheme.primary.withOpacity(0.05),
-                            child: Icon(Icons.image_not_supported_outlined, 
+                            child: Icon(Icons.image_not_supported_outlined,
                                 color: colorScheme.primary, size: 48),
                           ),
                         )
@@ -277,11 +281,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               'Location',
                               _currentEvent.location,
                               isClickable: true,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Opening Location on Map...')),
-                                );
-                              },
+                              onTap: () => _openLocationInMaps(context),
                             ),
                             const Divider(height: 1),
                             _buildLogisticsItem(
@@ -552,6 +552,223 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       return startFmt;
     } catch (e) {
       return startStr;
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  Future<void> _openLocationInMaps(BuildContext context) async {
+    // Check if event has coordinates
+    if (event.latitude == null || event.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location coordinates not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      Position? userPosition;
+
+      // Try to get user's current location
+      if (kIsWeb) {
+        // Web: Use browser geolocation API
+        try {
+          userPosition = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        } catch (e) {
+          debugPrint('Error getting user location on web: $e');
+          // Continue without user location - Google Maps will use browser location
+        }
+      } else {
+        // Mobile: Use permission handler and geolocator
+        final permissionStatus = await Permission.location.request();
+
+        if (permissionStatus.isGranted) {
+          try {
+            // Check if location services are enabled
+            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (serviceEnabled) {
+              userPosition = await Geolocator.getCurrentPosition(
+                desiredAccuracy: LocationAccuracy.high,
+              );
+            }
+          } catch (e) {
+            debugPrint('Error getting user location: $e');
+            // Continue without user location - Google Maps will use device location
+          }
+        }
+      }
+
+      bool launched = false;
+
+      // Web: Directly use web URL (no native apps available)
+      if (kIsWeb) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            // Include user location for directions
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          } else {
+            // Just destination - Google Maps will prompt for user location or use browser location
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          }
+
+          final uri = Uri.parse(mapsUrl);
+          // On web, use platformDefault which opens in new tab (more reliable than externalApplication)
+          // externalApplication might be blocked by browser pop-up blockers
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+          // Show error message on web if launch fails
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Could not open Google Maps. Please check your browser settings.'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: () => _openLocationInMaps(context),
+                ),
+              ),
+            );
+          }
+        }
+      }
+
+      // Try different URL schemes based on platform (skip if web, already handled)
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        // Android: Try multiple schemes with error handling
+        List<Uri> urisToTry = [];
+
+        if (userPosition != null) {
+          // Try google.navigation: for turn-by-turn navigation
+          urisToTry.add(Uri.parse(
+            'google.navigation:q=${event.latitude},${event.longitude}',
+          ));
+
+          // Try comgooglemaps:// with directions
+          urisToTry.add(Uri.parse(
+            'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&directionsmode=driving',
+          ));
+        }
+
+        // Try geo: scheme (works with any map app)
+        urisToTry.add(Uri.parse(
+          'geo:${event.latitude},${event.longitude}?q=${event.latitude},${event.longitude}(${Uri.encodeComponent(event.name)})',
+        ));
+
+        // Try comgooglemaps:// without directions
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+        ));
+
+        // Try each URI
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        // iOS: Try Apple Maps first, then Google Maps
+        List<Uri> urisToTry = [];
+
+        if (userPosition != null) {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&dirflg=d',
+          ));
+        } else {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?q=${event.latitude},${event.longitude}',
+          ));
+        }
+
+        // Fallback to Google Maps on iOS
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+        ));
+
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      }
+
+      // Fallback to web URL for all platforms (always works)
+      if (!launched) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          } else {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          }
+
+          final uri = Uri.parse(mapsUrl);
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+        }
+      }
+
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open maps application. Please install Google Maps.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening maps: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening maps: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
