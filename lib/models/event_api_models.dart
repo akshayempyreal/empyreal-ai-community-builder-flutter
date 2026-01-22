@@ -139,20 +139,20 @@ class EventListRequest {
   final int page;
   final int limit;
   final EventOwnership ownBy;
-  final EventStatus status;
+  final EventStatus? status;
 
   EventListRequest({
     this.page = 1,
     this.limit = 10,
     this.ownBy = EventOwnership.all,
-    this.status = EventStatus.upcoming,
+    this.status,
   });
 
   Map<String, dynamic> toJson() => {
     'page': page,
     'limit': limit,
     'ownBy': ownBy.toJson(),
-    'status': status.toJson(),
+    'status': status?.toJson() ?? '',
   };
 }
 
