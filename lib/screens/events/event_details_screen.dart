@@ -1,3 +1,4 @@
+import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
@@ -16,8 +17,6 @@ import '../../blocs/events/event_actions_event.dart';
 import '../../blocs/events/event_actions_state.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../repositories/event_repository.dart';
-import '../../services/api_client.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -173,7 +172,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     setState(() => _isLoading = true);
     try {
       final repository = EventRepository(ApiClient());
-      final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
+      
+      final request = UpdateEventRequest(
+        id: _currentEvent.id,
+        name: newName,
+        startDate: _currentEvent.date,
+        endDate: _currentEvent.endDate ?? _currentEvent.date,
+        description: _currentEvent.description,
+        attachments: _currentEvent.image != null ? [_currentEvent.image!] : [],
+        hoursInDay: _currentEvent.duration,
+        eventType: _currentEvent.type,
+        expectedAudienceSize: _currentEvent.audienceSize ?? 0,
+        location: _currentEvent.location,
+        lat: _currentEvent.latitude?.toString() ?? "0.0",
+        long: _currentEvent.longitude?.toString() ?? "0.0",
+      );
+
+      final response = await repository.updateEvent(request, widget.token);
 
       if (response.status && response.data != null) {
         setState(() {
