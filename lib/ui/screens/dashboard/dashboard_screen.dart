@@ -259,7 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           children: [
             AppAnimations.staggeredEntrance(
               StatCard(
-                title: context.tr('dashboard.total_events'),
+                title: "All Events",
                 value: stats['totalEvents'].toString(),
                 icon: Icons.calendar_today,
                 iconColor: AppColors.primary,
@@ -270,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             ),
             AppAnimations.staggeredEntrance(
               StatCard(
-                title: context.tr('dashboard.active_events'),
+                title: "Ongoing Events",
                 value: stats['activeEvents'].toString(),
                 icon: Icons.bolt,
                 iconColor: AppColors.success,
@@ -281,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             ),
             AppAnimations.staggeredEntrance(
               StatCard(
-                title: context.tr('dashboard.total_attendees'),
+                title: "All Attendees",
                 value: stats['totalAttendees'].toString(),
                 icon: Icons.people_outline,
                 iconColor: AppColors.secondary,
@@ -292,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             ),
             AppAnimations.staggeredEntrance(
               StatCard(
-                title: context.tr('dashboard.completed_events'),
+                title: "Past Events",
                 value: stats['completedEvents'].toString(),
                 icon: Icons.check_circle_outline,
                 iconColor: AppColors.info,

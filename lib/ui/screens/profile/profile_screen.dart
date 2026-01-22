@@ -77,23 +77,6 @@ class _ProfileScreenContent extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    BlocBuilder<ProfileBloc, ProfileState>(
-                      builder: (context, state) {
-                        return IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-                          onPressed: state is ProfileSuccess ? () {
-                            final userModel = state.user;
-                            final user = User(
-                              id: userModel.id,
-                              name: userModel.name,
-                              email: userModel.email,
-                              profilePic: userModel.profilePic,
-                            );
-                            onEditProfile(user);
-                          } : null,
-                        );
-                      },
-                    ),
                     const Icon(Icons.logout, color: Colors.white, size: 24)
                         .paddingAll(context, 8)
                         .onClick(onLogout),

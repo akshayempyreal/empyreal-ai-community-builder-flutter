@@ -8,7 +8,25 @@ class CreateEventBloc extends Bloc<CreateEventEvent, CreateEventState> {
 
   CreateEventBloc(this._eventRepository) : super(CreateEventInitial()) {
     on<CreateEventSubmitted>(_onCreateEventSubmitted);
+    on<UpdateEventSubmitted>(_onUpdateEventSubmitted);
     on<CreateEventFileUploading>(_onFileUpload);
+  }
+
+  Future<void> _onUpdateEventSubmitted(
+    UpdateEventSubmitted event,
+    Emitter<CreateEventState> emit,
+  ) async {
+    emit(CreateEventLoading());
+    try {
+      final response = await _eventRepository.updateEvent(event.request, event.token);
+      if (response.status) {
+        emit(CreateEventSuccess(response));
+      } else {
+        emit(CreateEventFailure(response.message));
+      }
+    } catch (e) {
+      emit(CreateEventFailure(e.toString()));
+    }
   }
 
   Future<void> _onCreateEventSubmitted(

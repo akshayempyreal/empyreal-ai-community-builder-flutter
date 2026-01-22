@@ -1,3 +1,4 @@
+import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
@@ -16,8 +17,6 @@ import '../../blocs/events/event_actions_event.dart';
 import '../../blocs/events/event_actions_state.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../repositories/event_repository.dart';
-import '../../services/api_client.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
@@ -42,84 +41,6 @@ class EventDetailsScreen extends StatefulWidget {
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
 }
-//
-// class _EventDetailsScreenState extends State<EventDetailsScreen> {
-//   late Event _currentEvent;
-//   bool _isLoading = false;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _currentEvent = widget.event;
-//   }
-//
-//   bool get _isOwner => widget.user.id == _currentEvent.createdBy;
-//
-//   Future<void> _showEditDialog() async {
-//     final nameController = TextEditingController(text: _currentEvent.name);
-//
-//     final result = await showDialog<String>(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text('Edit Event Name'),
-//         content: TextField(
-//           controller: nameController,
-//           decoration: const InputDecoration(
-//             labelText: 'Event Name',
-//             hintText: 'Enter new event name',
-//           ),
-//           autofocus: true,
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text('Cancel'),
-//           ),
-//           ElevatedButton(
-//             onPressed: () => Navigator.pop(context, nameController.text),
-//             child: const Text('Save'),
-//           ),
-//         ],
-//       ),
-//     );
-//
-//     if (result != null && result.isNotEmpty && result != _currentEvent.name) {
-//       _updateEventName(result);
-//     }
-//   }
-//
-//   Future<void> _updateEventName(String newName) async {
-//     setState(() => _isLoading = true);
-//     try {
-//       final repository = EventRepository(ApiClient());
-//       final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
-//
-//       if (response.status && response.data != null) {
-//         setState(() {
-//           _currentEvent = Event.fromEventData(response.data!);
-//         });
-//         if (mounted) {
-//           ScaffoldMessenger.of(context).showSnackBar(
-//             const SnackBar(content: Text('Event updated successfully')),
-//           );
-//         }
-//       } else {
-//         throw Exception(response.message);
-//       }
-//     } catch (e) {
-//       if (mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('Failed to update event: $e'), backgroundColor: Colors.red),
-//         );
-//       }
-//     } finally {
-//       if (mounted) setState(() => _isLoading = false);
-//     }
-//   }
-//
-//   @override
-//   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
-// }
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event _currentEvent;
@@ -251,7 +172,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     setState(() => _isLoading = true);
     try {
       final repository = EventRepository(ApiClient());
-      final response = await repository.updateEvent(_currentEvent.id, newName, widget.token);
+      
+      final request = UpdateEventRequest(
+        id: _currentEvent.id,
+        name: newName,
+        startDate: _currentEvent.date,
+        endDate: _currentEvent.endDate ?? _currentEvent.date,
+        description: _currentEvent.description,
+        attachments: _currentEvent.image != null ? [_currentEvent.image!] : [],
+        hoursInDay: _currentEvent.duration,
+        eventType: _currentEvent.type,
+        expectedAudienceSize: _currentEvent.audienceSize ?? 0,
+        location: _currentEvent.location,
+        lat: _currentEvent.latitude?.toString() ?? "0.0",
+        long: _currentEvent.longitude?.toString() ?? "0.0",
+      );
+
+      final response = await repository.updateEvent(request, widget.token);
 
       if (response.status && response.data != null) {
         setState(() {
@@ -379,6 +316,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             
             // Clear the stored previous state
             _previousJoinState = null;
+
+            // Navigate back to dashboard after successful join/leave as requested
+            if (mounted) {
+              widget.onBack();
+            }
           } else if (state is EventActionFailure) {
             // Revert optimistic update on failure - restore previous state
             setState(() {
@@ -683,8 +625,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           _buildActionCard(
                             context,
                             title: 'Feedback',
-                            subtitle: 'Collect responses',
-                            icon: Icons.feedback,
+                            subtitle: 'Reviews',
+                            icon: Icons.feedback_outlined,
                             iconColor: colorScheme.secondary,
                             onTap: () => widget.onNavigate('feedback-collection'),
                           ),
@@ -794,7 +736,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isJoined ? 'Leave This Event' : 'Join This Event',
+                      isJoined ? 'Leave Community' : 'Join Community',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],

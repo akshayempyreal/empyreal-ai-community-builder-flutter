@@ -44,6 +44,9 @@ import 'ui/screens/events/attendee_management_screen.dart';
 import 'ui/screens/events/reminder_settings_screen.dart';
 import 'ui/screens/events/feedback_collection_screen.dart';
 import 'ui/screens/events/feedback_reports_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'blocs/attendee/attendee_bloc.dart';
+import 'repositories/event_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,7 +88,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Event Builder',
+      title: 'EvoMeet',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system, // Respect system theme
@@ -620,6 +623,25 @@ class _AppNavigatorState extends State<AppNavigator> {
           token: _token,
         );
       
+      case 'edit-event':
+        return CreateEventScreen(
+          key: const ValueKey('edit-event'),
+          onCreateEvent: (updatedEvent) {
+            setState(() {
+              final index = _events.indexWhere((e) => e.id == updatedEvent.id);
+              if (index != -1) {
+                _events[index] = updatedEvent;
+              }
+              _currentEvent = updatedEvent;
+              _currentPage = 'manual-agenda'; // Go to agenda flow just like create
+            });
+          },
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+          token: _token,
+          eventToEdit: _currentEvent,
+        );
+      
       case 'event-details':
         return EventDetailsScreen(
           key: const ValueKey('event-details'),
@@ -699,20 +721,22 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
       
       case 'attendees':
-        return AttendeeManagementScreen(
-          key: const ValueKey('attendees'),
-          event: _currentEvent!,
-          attendees: _attendees,
-          onAddAttendee: _handleAddAttendee,
-          onBack: () => setState(() => _currentPage = 'event-details'),
-          user: _user!,
+        return BlocProvider(
+          create: (context) => AttendeeBloc(EventRepository(ApiClient())),
+          child: AttendeeManagementScreen(
+            key: const ValueKey('attendees'),
+            event: _currentEvent!,
+            onBack: () => setState(() => _currentPage = 'event-details'),
+            user: _user!,
+            token: _token,
+          ),
         );
 
       case 'feedback-collection':
         return FeedbackCollectionScreen(
           key: const ValueKey('feedback-collection'),
           event: _currentEvent!,
-          onSubmitFeedback: _handleSubmitFeedback,
+          token: _token,
           onBack: () => setState(() => _currentPage = 'event-details'),
         );
 
