@@ -1,8 +1,8 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../models/event.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/event_card.dart';
 
@@ -35,7 +35,7 @@ class DashboardScreen extends StatelessWidget {
     final stats = _calculateStats();
 
     return Scaffold(
-      backgroundColor: AppTheme.gray50,
+      backgroundColor: AppColors.gray50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -46,7 +46,7 @@ class DashboardScreen extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                  colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -68,7 +68,7 @@ class DashboardScreen extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: const BoxDecoration(
-                        color: AppTheme.red500,
+                        color: AppColors.error,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -98,14 +98,14 @@ class DashboardScreen extends StatelessWidget {
                   final isSmall = MediaQuery.of(context).size.width < 600;
                   
                   Widget avatar = CircleAvatar(
-                    backgroundColor: AppTheme.indigo100,
+                    backgroundColor: AppColors.indigo100,
                     backgroundImage: user.profilePic != null && user.profilePic!.isNotEmpty
                         ? NetworkImage(user.profilePic!.fixImageUrl)
                         : null,
                     child: user.profilePic == null || user.profilePic!.isEmpty
                         ? Text(
                             user.name.firstChar.upper,
-                            style: const TextStyle(color: AppTheme.primaryIndigo),
+                            style: const TextStyle(color: AppColors.primaryIndigo),
                           )
                         : null,
                   );
@@ -168,7 +168,7 @@ class DashboardScreen extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.gray900,
+                color: AppColors.gray900,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -176,7 +176,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               "Here's what's happening with your events",
-              style: TextStyle(fontSize: 16, color: AppTheme.gray600),
+              style: TextStyle(fontSize: 16, color: AppColors.gray600),
             ),
             const SizedBox(height: 32),
 
@@ -201,28 +201,28 @@ class DashboardScreen extends StatelessWidget {
                       title: 'Total Events',
                       value: stats['totalEvents'].toString(),
                       icon: Icons.calendar_today,
-                      iconColor: AppTheme.gray600,
+                      iconColor: AppColors.gray600,
                       subtitle: 'All time',
                     ),
                     StatCard(
                       title: 'Active Events',
                       value: stats['activeEvents'].toString(),
                       icon: Icons.access_time,
-                      iconColor: AppTheme.green600,
+                      iconColor: AppColors.gray700,
                       subtitle: 'Ongoing',
                     ),
                     StatCard(
                       title: 'Total Attendees',
                       value: stats['totalAttendees'].toString(),
                       icon: Icons.people,
-                      iconColor: AppTheme.gray600,
+                      iconColor: AppColors.gray600,
                       subtitle: 'Registered',
                     ),
                     StatCard(
                       title: 'Completed',
                       value: stats['completedEvents'].toString(),
                       icon: Icons.bar_chart,
-                      iconColor: AppTheme.primaryPurple,
+                      iconColor: AppColors.primaryPurple,
                       subtitle: 'Events',
                     ),
                   ],
@@ -238,7 +238,7 @@ class DashboardScreen extends StatelessWidget {
                 return Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+                      colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -288,7 +288,7 @@ class DashboardScreen extends StatelessWidget {
                           label: const Text('New Event'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppTheme.primaryIndigo,
+                            foregroundColor: AppColors.primaryIndigo,
                             minimumSize: const Size(double.infinity, 48), // Full width
                           ),
                         ),
@@ -333,7 +333,7 @@ class DashboardScreen extends StatelessWidget {
                           label: const Text('New Event'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-                            foregroundColor: AppTheme.primaryIndigo,
+                            foregroundColor: AppColors.primaryIndigo,
                           ),
                         ),
                       ],
@@ -352,7 +352,7 @@ class DashboardScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.gray900,
+                    color: AppColors.gray900,
                   ),
                 ),
                 OutlinedButton.icon(
@@ -375,7 +375,7 @@ class DashboardScreen extends StatelessWidget {
                         const Icon(
                           Icons.calendar_today,
                           size: 48,
-                          color: AppTheme.gray400,
+                          color: AppColors.gray400,
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -383,13 +383,13 @@ class DashboardScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.gray900,
+                            color: AppColors.gray900,
                           ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
                           'Create your first event to get started',
-                          style: TextStyle(color: AppTheme.gray600),
+                          style: TextStyle(color: AppColors.gray600),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(

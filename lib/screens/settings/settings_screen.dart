@@ -1,6 +1,7 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_theme.dart';
+import 'package:empyreal_ai_community_builder_flutter/project_helpers.dart';
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
-import '../../project_helpers.dart';
+
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -29,11 +30,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -94,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   });
                                   // In a real app, you might update this via a service
                                 },
-                                activeColor: AppTheme.primaryIndigo,
+                                activeColor: AppColors.primaryIndigo,
                               ),
                             ),
                           ]),
@@ -130,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               label: const Text('Logout'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: AppTheme.red500,
+                                foregroundColor: AppColors.error,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: 12.roundBorder,
                               ),
@@ -195,20 +196,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.primaryIndigo.withOpacity(0.1),
+          color: AppColors.primaryIndigo.withOpacity(0.1),
           borderRadius: 8.radius,
         ),
-        child: Icon(icon, color: AppTheme.primaryIndigo, size: 22),
+        child: Icon(icon, color: AppColors.primaryIndigo, size: 22),
       ),
       title: Text(
         title,
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: AppTheme.gray900,
+          color: AppColors.gray900,
         ),
       ),
-      trailing: trailing ?? const Icon(Icons.chevron_right, color: AppTheme.gray400),
+      trailing: trailing ?? const Icon(Icons.chevron_right, color: AppColors.gray400),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -224,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         height: 48,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -233,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         const Text(
           'Automate your community and corporate event planning with the power of AI.',
-          style: TextStyle(color: AppTheme.gray600),
+          style: TextStyle(color: AppColors.gray600),
         ),
       ],
     );

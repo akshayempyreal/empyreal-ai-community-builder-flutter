@@ -16,6 +16,9 @@ class DashboardScreen extends StatefulWidget {
   final Function(Event) onSelectEvent;
   final VoidCallback onLogout;
   final VoidCallback onNavigateToProfile;
+  final VoidCallback onNavigateToSettings;
+  final VoidCallback onNavigateToNotifications;
+  final int unreadCount;
 
   const DashboardScreen({
     super.key,
@@ -25,6 +28,9 @@ class DashboardScreen extends StatefulWidget {
     required this.onSelectEvent,
     required this.onLogout,
     required this.onNavigateToProfile,
+    required this.onNavigateToSettings,
+    required this.onNavigateToNotifications,
+    required this.unreadCount,
   });
 
   @override
@@ -83,22 +89,90 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  onPressed: () {},
+                  icon: Stack(
+                    children: [
+                      const Icon(Icons.notifications_outlined),
+                      if (widget.unreadCount > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 14,
+                              minHeight: 14,
+                            ),
+                            child: Text(
+                              widget.unreadCount > 9 ? '9+' : widget.unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  onPressed: widget.onNavigateToNotifications,
                 ),
-                GestureDetector(
-                  onTap: widget.onNavigateToProfile,
+                PopupMenuButton<int>(
+                  offset: const Offset(0, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: CircleAvatar(
                       radius: 18,
                       backgroundColor: AppColors.primary.withOpacity(0.1),
-                      child: Text(
-                        widget.user.name[0].toUpperCase(),
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                      ),
+                      backgroundImage: widget.user.profilePic != null && widget.user.profilePic!.isNotEmpty
+                          ? NetworkImage(widget.user.profilePic!.fixImageUrl)
+                          : null,
+                      child: widget.user.profilePic == null || widget.user.profilePic!.isEmpty
+                          ? Text(
+                              widget.user.name[0].toUpperCase(),
+                              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                            )
+                          : null,
                     ),
                   ),
+                  itemBuilder: (context) => <PopupMenuEntry<int>>[
+                    PopupMenuItem<int>(
+                      onTap: widget.onNavigateToProfile,
+                      child: ListTile(
+                        leading: const Icon(Icons.person_outline),
+                        title: Text(context.tr('common.profile')),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    PopupMenuItem<int>(
+                      onTap: widget.onNavigateToSettings,
+                      child: ListTile(
+                        leading: const Icon(Icons.settings_outlined),
+                        title: Text(context.tr('common.settings')),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<int>(
+                      onTap: widget.onLogout,
+                      child: ListTile(
+                        leading: const Icon(Icons.logout, color: AppColors.error),
+                        title: Text(
+                          context.tr('common.logout'),
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -184,6 +258,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 value: stats['totalEvents'].toString(),
                 icon: Icons.calendar_today,
                 iconColor: AppColors.primary,
+                subtitle: context.tr('dashboard.total_events_subtitle'),
               ),
               0,
               _controller,
@@ -194,6 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 value: stats['activeEvents'].toString(),
                 icon: Icons.bolt,
                 iconColor: AppColors.success,
+                subtitle: context.tr('dashboard.active_events_subtitle'),
               ),
               1,
               _controller,
@@ -204,6 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 value: stats['totalAttendees'].toString(),
                 icon: Icons.people_outline,
                 iconColor: AppColors.secondary,
+                subtitle: context.tr('dashboard.total_attendees_subtitle'),
               ),
               2,
               _controller,
@@ -214,6 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 value: stats['completedEvents'].toString(),
                 icon: Icons.check_circle_outline,
                 iconColor: AppColors.info,
+                subtitle: context.tr('dashboard.completed_events_subtitle'),
               ),
               3,
               _controller,

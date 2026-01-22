@@ -1,7 +1,7 @@
+import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../theme/app_theme.dart';
 import '../../project_helpers.dart';
 import '../../blocs/login/login_bloc.dart';
 import '../../blocs/login/login_event.dart';
@@ -74,11 +74,11 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primaryIndigo, AppTheme.primaryPurple],
+            colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
           ),
         ),
         child: SafeArea(
@@ -124,8 +124,8 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [
-                                  AppTheme.primaryIndigo,
-                                  AppTheme.primaryPurple,
+                                  AppColors.primaryIndigo,
+                                  AppColors.primaryPurple,
                                 ],
                               ),
                               borderRadius: 16.radius,
@@ -144,7 +144,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.gray900,
+                              color: AppColors.gray900,
                             ),
                           ).centerAlign,
                           8.height(context),
@@ -152,7 +152,7 @@ class _LoginScreenContentState extends State<_LoginScreenContent> {
                             'Sign in with your mobile number',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.gray600,
+                              color: AppColors.gray600,
                             ),
                           ).centerAlign,
                           32.height(context),
