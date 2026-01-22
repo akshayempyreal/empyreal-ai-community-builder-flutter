@@ -1,122 +1,807 @@
+import 'package:empyreal_ai_community_builder_flutter/core/constants/api_constants.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/notifications/notification_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/settings/settings_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/screens/settings/webview_screen.dart';
+import 'package:empyreal_ai_community_builder_flutter/ui/screens/events/generated_agenda_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
+import 'core/animation/app_animations.dart';
+import 'models/auth_models.dart';
+import 'dart:ui';
+import 'services/notification_service.dart';
+import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'core/localization/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'models/user.dart';
+import 'models/event.dart';
+import 'models/agenda_item.dart';
+import 'models/attendee.dart';
+import 'models/reminder.dart';
+import 'models/feedback_response.dart';
+import 'ui/screens/auth/login_screen.dart';
+import 'ui/screens/auth/otp_screen.dart';
+import 'ui/screens/auth/register_screen.dart';
+import 'ui/screens/profile/profile_screen.dart';
+import 'ui/screens/profile/edit_profile_screen.dart';
+import 'ui/screens/auth/complete_profile_screen.dart';
+import 'ui/screens/auth/forgot_password_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'repositories/auth_repository.dart';
+import 'services/api_client.dart';
+import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/events/create_event_screen.dart';
+import 'screens/events/event_details_screen.dart';
+import 'ui/screens/events/ai_agenda_builder_screen.dart';
+import 'ui/screens/events/event_agenda_screen.dart';
+import 'screens/events/manual_agenda_editor_screen.dart';
+import 'ui/screens/events/attendee_management_screen.dart';
+import 'ui/screens/events/reminder_settings_screen.dart';
+import 'ui/screens/events/feedback_collection_screen.dart';
+import 'ui/screens/events/feedback_reports_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'blocs/attendee/attendee_bloc.dart';
+import 'repositories/event_repository.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. Platform-Based Firebase Isolation
+  // Firebase is REQUIRED ONLY for Mobile (Android / iOS).
+  // Web builds MUST NOT initialize or reference Firebase runtime services.
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp();
+
+      // Enable Crashlytics collection
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+
+      // Pass all uncaught "fatal" errors from the framework to Crashlytics
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
+      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+
+      // Setup FCM using the new service only on mobile
+      await NotificationService().initialize();
+    } catch (e) {
+      debugPrint('Firebase initialization error: $e');
+      // Continue app execution even if Firebase fails
+    }
+  }
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'EvoMeet',
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light, // Force light mode (white theme) only
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''),
+        Locale('hi', ''),
+      ],
+      home: const AppNavigator(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class AppNavigator extends StatefulWidget {
+  const AppNavigator({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AppNavigator> createState() => _AppNavigatorState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _AppNavigatorState extends State<AppNavigator> {
+  String _currentPage = 'login';
+  User? _user;
+  String _tempMobileNo = '';
+  String _tempUserId = '';
+  String _token = '';
+  bool _isNewUser = false;
+  List<Event> _events = [];
+  Event? _currentEvent;
+  List<AgendaItem> _agendaItems = [];
+  List<Attendee> _attendees = [];
+  List<Reminder> _reminders = [];
+  List<FeedbackResponse> _feedbackResponses = [];
+  int _unreadNotificationCount = 0;
+  String? _generatedAgendaText; // Store generated agenda text
+  
+  void _safeNavigateToDashboard() {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _currentPage = 'dashboard';
+        _generatedAgendaText = null; // Clear generated agenda
+      });
+    } catch (e) {
+      debugPrint('Error navigating to dashboard: $e');
+    }
+  }
+  
+  void _navigateToGeneratedAgenda(String agendaText) {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _generatedAgendaText = agendaText;
+        _currentPage = 'generated-agenda';
+      });
+    } catch (e) {
+      debugPrint('Error navigating to generated agenda: $e');
+    }
+  }
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+    _loadMockData();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkPermissions() async {
+    if (!kIsWeb) {
+      await [
+        Permission.locationWhenInUse,
+        Permission.notification,
+      ].request();
+    }
+  }
+
+  Future<void> _checkLoginStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final userData = prefs.getString('user');
+
+      if (token != null && userData != null && token.isNotEmpty) {
+        final decodedUser = jsonDecode(userData);
+        setState(() {
+          _token = token;
+          _user = User.fromJson(decodedUser);
+          _currentPage = 'dashboard';
+        });
+        _fetchUnreadCount();
+      }
+    } catch (e) {
+      debugPrint('Error checking login status: $e');
+    }
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    if (_token.isEmpty) return;
+    try {
+      final response = await AuthRepository(ApiClient()).getUnreadCount(_token);
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = response.unreadCount;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching unread count: $e');
+    }
+  }
+
+  void _loadMockData() {
+    _events = [
+      Event(
+        id: '1',
+        name: 'Holi Community Event 2026',
+        description: 'A vibrant celebration of colors and culture',
+        type: 'cultural',
+        date: '2026-03-15',
+        duration: 7,
+        audienceSize: 200,
+        planningMode: 'automated',
+        status: 'published',
+        createdAt: '2026-01-10',
+        createdBy: '1',
+        attendeeCount: 156,
+        location: '23.54455-23.555566'
+      ),
+      Event(
+        id: '2',
+        name: 'Tech Workshop Series',
+        description: 'Three-day workshop on AI and Machine Learning',
+        type: 'workshop',
+        date: '2026-02-20',
+        endDate: '2026-02-22',
+        duration: 6,
+        audienceSize: 50,
+        planningMode: 'manual',
+        status: 'ongoing',
+        createdAt: '2026-01-15',
+        createdBy: '1',
+        attendeeCount: 48,
+        location: '23.54455-23.555566'
+      ),
+    ];
+  }
+
+  void _handleLoginSuccess(String userId, String mobileNo, bool isNewUser) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _tempUserId = userId;
+      _tempMobileNo = mobileNo;
+      _isNewUser = isNewUser;
+      _currentPage = 'otp';
+    });
+  }
+
+  Future<void> _handleOtpVerified(UserModel user, String token) async {
+    setState(() {
+      _token = token;
+      if (_isNewUser) {
+        _currentPage = 'complete-profile';
+      } else {
+        _user = User(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          profilePic: user.profilePic,
+        );
+        _currentPage = 'dashboard';
+      }
+    });
+    if (!_isNewUser) {
+      await _saveSession(user, token);
+    }
+  }
+
+  Future<void> _saveSession(dynamic user, String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', token);
+
+    User sessionUser;
+    if (user is UserModel) {
+      sessionUser = User(
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profilePic: user.profilePic,
+      );
+    } else {
+      sessionUser = user as User;
+    }
+    await prefs.setString('user', jsonEncode(sessionUser.toJson()));
+  }
+
+  Future<void> _handleProfileCompleted(String name, String profilePic) async {
+    setState(() {
+      _user = User(
+        id: _tempUserId,
+        name: name,
+        email: null,
+        profilePic: profilePic,
+      );
+      _currentPage = 'dashboard';
+    });
+    await _saveSession(_user!, _token);
+  }
+
+  Future<void> _handleProfileUpdated(String name, String profilePic) async {
+    setState(() {
+      _user = User(
+        id: _user!.id,
+        name: name,
+        email: _user!.email,
+        profilePic: profilePic,
+      );
+      _currentPage = 'profile';
+    });
+    await _saveSession(_user!, _token);
+  }
+
+  void _handleRegister(String name, String email, String password) {
+    setState(() {
+      _user = User(
+        id: '1',
+        name: name,
+        email: email,
+      );
+      _currentPage = 'dashboard';
+    });
+  }
+
+  void _handleLogout() async {
+    try {
+      if (_token.isNotEmpty) {
+        await AuthRepository(ApiClient()).logout(_token);
+      }
+    } catch (e) {
+      debugPrint('Logout API Error: $e');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    setState(() {
+      _user = null;
+      _token = '';
+      _currentPage = 'login';
+      _currentEvent = null;
+    });
+  }
+
+  void _handleCreateEvent(Event event) {
+    setState(() {
+      _events.add(event);
+      _currentEvent = event;
+      _currentPage = 'manual-agenda';
+    });
+  }
+
+
+  void _handleSelectEvent(Event event) {
+    setState(() {
+      _currentEvent = event;
+      _currentPage = 'event-details';
+      
+      // Load mock data for this event
+      if (event.id == '1') {
+        _agendaItems = [
+          AgendaItem(
+            id: 'a1',
+            title: 'Welcome Session',
+            startTime: '09:00',
+            endTime: '09:30',
+            type: 'ceremony',
+            description: 'Opening ceremony and welcome address',
+          ),
+          AgendaItem(
+            id: 'a2',
+            title: 'Ice-breaking Activities',
+            startTime: '09:30',
+            endTime: '10:30',
+            type: 'activity',
+          ),
+          AgendaItem(
+            id: 'a3',
+            title: 'Tea Break',
+            startTime: '10:30',
+            endTime: '10:45',
+            type: 'break',
+          ),
+        ];
+
+        _attendees = [
+          Attendee(
+            id: '1',
+            name: 'Alice Kumar',
+            email: 'alice@example.com',
+            phone: '+91-9876543210',
+            registeredAt: '2026-02-10',
+            status: 'confirmed',
+          ),
+          Attendee(
+            id: '2',
+            name: 'Bob Sharma',
+            email: 'bob@example.com',
+            registeredAt: '2026-02-12',
+            status: 'registered',
+          ),
+        ];
+
+        _reminders = [
+          Reminder(
+            id: 'r1',
+            type: 'event-start',
+            timing: '1 day before',
+            message: 'Event starts tomorrow!',
+            enabled: true,
+          ),
+        ];
+
+        _feedbackResponses = [
+          FeedbackResponse(
+            id: 'f1',
+            attendeeId: '1',
+            attendeeName: 'Alice Kumar',
+            rating: 5,
+            comments: 'Amazing event! Loved the cultural performances.',
+            submittedAt: '2026-03-16',
+          ),
+        ];
+      }
+    });
+  }
+
+  void _handleSaveAgenda(List<AgendaItem> items) {
+    setState(() {
+      _agendaItems = items;
+      _currentPage = 'dashboard';
+    });
+  }
+
+
+  void _handleAddAttendee(Attendee attendee) {
+    setState(() {
+      _attendees.add(attendee);
+    });
+  }
+
+  void _handleUpdateReminders(List<Reminder> reminders) {
+    setState(() {
+      _reminders = reminders;
+    });
+  }
+
+  void _handleSubmitFeedback(FeedbackResponse feedback) {
+    setState(() {
+      _feedbackResponses.add(feedback);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: AnimatedSwitcher(
+        duration: AppAnimations.normal,
+        transitionBuilder: AppAnimations.pageTransitionBuilder,
+        child: _buildPage(),
       ),
     );
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_currentPage == 'login' || _currentPage == 'dashboard') {
+      return true;
+    }
+
+    setState(() {
+      switch (_currentPage) {
+        case 'register':
+        case 'forgot-password':
+        case 'otp':
+          _currentPage = 'login';
+          break;
+        case 'create-event':
+        case 'event-details':
+          _currentPage = 'dashboard';
+          break;
+        case 'ai-agenda':
+        case 'manual-agenda':
+        case 'agenda-view':
+        case 'generated-agenda':
+        case 'attendees':
+        case 'reminders':
+        case 'feedback-collection':
+        case 'feedback-reports':
+        case 'profile':
+        case 'edit-profile':
+        case 'settings':
+        case 'privacy':
+        case 'terms':
+        case 'notifications':
+          _currentPage = 'dashboard';
+          break;
+        default:
+          _currentPage = 'dashboard';
+      }
+    });
+    return false;
+  }
+
+  Widget _buildPage() {
+    switch (_currentPage) {
+      case 'login':
+        return LoginScreen(
+          key: const ValueKey('login'),
+          onLoginSuccess: _handleLoginSuccess,
+          onNavigateToRegister: () => setState(() => _currentPage = 'register'),
+          onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
+        );
+
+      case 'otp':
+        return OtpScreen(
+          key: const ValueKey('otp'),
+          userId: _tempUserId,
+          mobileNo: _tempMobileNo,
+          onOtpVerified: _handleOtpVerified,
+          onBack: () => setState(() => _currentPage = 'login'),
+        );
+
+      case 'complete-profile':
+        return CompleteProfileScreen(
+          key: const ValueKey('complete-profile'),
+          userId: _tempUserId,
+          token: _token,
+          onProfileCompleted: _handleProfileCompleted,
+        );
+
+      case 'register':
+        return RegisterScreen(
+          key: const ValueKey('register'),
+          onRegister: _handleRegister,
+          onNavigateToLogin: () => setState(() => _currentPage = 'login'),
+        );
+      
+      case 'forgot-password':
+        return ForgotPasswordScreen(
+          key: const ValueKey('forgot-password'),
+          onNavigateToLogin: () => setState(() => _currentPage = 'login'),
+        );
+      
+      case 'dashboard':
+        return DashboardScreen(
+          key: const ValueKey('dashboard'),
+          user: _user!,
+          token: _token,
+          onCreateEvent: () => setState(() => _currentPage = 'create-event'),
+          onSelectEvent: _handleSelectEvent,
+          onLogout: _handleLogout,
+          onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+          onNavigateToNotifications: () async {
+            setState(() => _currentPage = 'notifications');
+          },
+          unreadCount: _unreadNotificationCount,
+        );
+
+      case 'notifications':
+        return NotificationScreen(
+          token: _token,
+          onBack: () {
+            setState(() => _currentPage = 'dashboard');
+            _fetchUnreadCount();
+          },
+        );
+
+      case 'settings':
+        return SettingsScreen(
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          onLogout: _handleLogout,
+          onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+          onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+          onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+        );
+
+      case 'privacy':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/privacy-policy');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening privacy policy: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
+        return AppWebViewScreen(
+          title: 'Privacy Policy',
+          url: '${ApiConstants.baseUrl}/privacy-policy',
+          onBack: () => setState(() => _currentPage = 'settings'),
+        );
+
+      case 'terms':
+        if (kIsWeb) {
+          // On web, directly open in new tab
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            try {
+              final uri = Uri.parse('${ApiConstants.baseUrl}/terms-and-conditions');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              // Navigate back to settings
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            } catch (e) {
+              debugPrint('Error opening terms: $e');
+              if (mounted) {
+                setState(() => _currentPage = 'settings');
+              }
+            }
+          });
+          // Return settings screen while opening URL
+          return SettingsScreen(
+            onBack: () => setState(() => _currentPage = 'dashboard'),
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
+            onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          );
+        }
+        return AppWebViewScreen(
+          title: 'Terms & Conditions',
+          url: '${ApiConstants.baseUrl}/terms-and-conditions',
+          onBack: () => setState(() => _currentPage = 'settings'),
+        );
+
+      case 'profile':
+        return ProfileScreen(
+          key: const ValueKey('profile'),
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          onLogout: _handleLogout,
+          onEditProfile: (user) => setState(() {
+            _user = user;
+            _currentPage = 'edit-profile';
+          }),
+        );
+      
+      case 'edit-profile':
+        return EditProfileScreen(
+          key: const ValueKey('edit-profile'),
+          user: _user!,
+          token: _token,
+          onProfileUpdated: _handleProfileUpdated,
+          onBack: () => setState(() => _currentPage = 'profile'),
+        );
+      
+      case 'create-event':
+        return CreateEventScreen(
+          key: const ValueKey('create-event'),
+          onCreateEvent: _handleCreateEvent,
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          user: _user!,
+          token: _token,
+        );
+      
+      case 'edit-event':
+        return CreateEventScreen(
+          key: const ValueKey('edit-event'),
+          onCreateEvent: (updatedEvent) {
+            setState(() {
+              final index = _events.indexWhere((e) => e.id == updatedEvent.id);
+              if (index != -1) {
+                _events[index] = updatedEvent;
+              }
+              _currentEvent = updatedEvent;
+              _currentPage = 'manual-agenda'; // Go to agenda flow just like create
+            });
+          },
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+          token: _token,
+          eventToEdit: _currentEvent,
+        );
+      
+      case 'event-details':
+        return EventDetailsScreen(
+          key: const ValueKey('event-details'),
+          event: _currentEvent!,
+          agendaItems: _agendaItems,
+          attendees: _attendees,
+          onNavigate: (page) => setState(() => _currentPage = page),
+          onBack: () => setState(() => _currentPage = 'dashboard'),
+          user: _user!,
+          token: _token,
+        );
+      
+      case 'ai-agenda':
+        return AIAgendaBuilderScreen(
+          key: const ValueKey('ai-agenda'),
+          event: _currentEvent!,
+          onSaveAgenda: _handleSaveAgenda,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+          token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
+        );
+
+      case 'agenda-view':
+        return EventAgendaScreen(
+          key: const ValueKey('agenda-view'),
+          event: _currentEvent!,
+          agendaItems: _agendaItems,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          onEditAgenda: () => setState(
+            () => _currentPage =
+                _currentEvent!.planningMode == 'automated' ? 'ai-agenda' : 'manual-agenda',
+          ),
+        );
+      
+      case 'manual-agenda':
+        return ManualAgendaEditorScreen(
+          key: const ValueKey('manual-agenda'),
+          event: _currentEvent!,
+          existingAgenda: _agendaItems,
+          onSaveAgenda: _handleSaveAgenda,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+          user: _user!,
+          token: _token,
+          onSaveAndRedirect: _safeNavigateToDashboard,
+          onNavigateToGeneratedAgenda: _navigateToGeneratedAgenda,
+          isEditMode: _agendaItems.isNotEmpty, // Edit mode if agenda already exists
+        );
+      
+      case 'generated-agenda':
+        if (_generatedAgendaText == null || _currentEvent == null) {
+          // Fallback to dashboard if data is missing
+          return DashboardScreen(
+            key: const ValueKey('dashboard-fallback'),
+            user: _user!,
+            token: _token,
+            onCreateEvent: () => setState(() => _currentPage = 'create-event'),
+            onSelectEvent: _handleSelectEvent,
+            onLogout: _handleLogout,
+            onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
+            onNavigateToSettings: () => setState(() => _currentPage = 'settings'),
+            onNavigateToNotifications: () async {
+              setState(() => _currentPage = 'notifications');
+            },
+            unreadCount: _unreadNotificationCount,
+          );
+        }
+        return GeneratedAgendaScreen(
+          key: const ValueKey('generated-agenda'),
+          event: _currentEvent!,
+          agendaText: _generatedAgendaText!,
+          user: _user!,
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'manual-agenda'),
+          onSaveAndRedirect: _safeNavigateToDashboard,
+        );
+      
+      case 'attendees':
+        return BlocProvider(
+          create: (context) => AttendeeBloc(EventRepository(ApiClient())),
+          child: AttendeeManagementScreen(
+            key: const ValueKey('attendees'),
+            event: _currentEvent!,
+            onBack: () => setState(() => _currentPage = 'event-details'),
+            user: _user!,
+            token: _token,
+          ),
+        );
+
+      case 'feedback-collection':
+        return FeedbackCollectionScreen(
+          key: const ValueKey('feedback-collection'),
+          event: _currentEvent!,
+          token: _token,
+          onBack: () => setState(() => _currentPage = 'event-details'),
+        );
+
+      default:
+        return LoginScreen(
+          key: const ValueKey('login-default'),
+          onLoginSuccess: _handleLoginSuccess,
+          onNavigateToRegister: () => setState(() => _currentPage = 'register'),
+          onNavigateToForgotPassword: () => setState(() => _currentPage = 'forgot-password'),
+        );
+    }
   }
 }

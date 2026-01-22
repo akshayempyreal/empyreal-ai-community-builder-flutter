@@ -1,0 +1,141 @@
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import '../models/event_api_models.dart';
+import '../models/session_models.dart';
+import '../models/auth_models.dart';
+import '../services/api_client.dart';
+
+class EventRepository {
+  final ApiClient _apiClient;
+
+  EventRepository(this._apiClient);
+
+  Future<CreateEventResponse> createEvent(CreateEventRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/store',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
+
+  Future<GenerateSessionsResponse> generateSessions(String eventId, String token) async {
+    final response = await _apiClient.get(
+      '/api/user/event/generate-sessions/$eventId',
+      headers: {'Authorization': 'Bearer $token'},
+      receiveTimeout: const Duration(minutes: 4),
+    );
+    return GenerateSessionsResponse.fromJson(response.data);
+  }
+
+  Future<FileUploadResponse> uploadFile(XFile file, String token) async {
+    FormData formData;
+    
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      formData = FormData.fromMap({
+        "files": MultipartFile.fromBytes(bytes, filename: file.name),
+      });
+    } else {
+      formData = FormData.fromMap({
+        "files": await MultipartFile.fromFile(file.path, filename: file.name),
+      });
+    }
+    
+    final response = await _apiClient.post(
+      '/api/fileUpload', 
+      data: formData,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return FileUploadResponse.fromJson(response.data);
+  }
+
+  /// Fetches a list of events based on the provided [request] parameters.
+  /// 
+  /// Throws an [Exception] if the request fails (handled by [ApiClient]).
+  /// Returns an [EventListResponse] containing the parsed events list and pagination data.
+  Future<EventListResponse> getEvents(EventListRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/list',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return EventListResponse.fromJson(response.data);
+  }
+
+  Future<SaveSessionsResponse> saveSessions(SaveSessionsRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-sessions',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return SaveSessionsResponse.fromJson(response.data);
+  }
+
+  Future<CreateEventResponse> joinLeaveEvent(String id, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/join-leave/$id',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
+
+  Future<CreateEventResponse> updateEvent(UpdateEventRequest request, String token) async {
+    final response = await _apiClient.put(
+      '/api/user/event/update',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return CreateEventResponse.fromJson(response.data);
+  }
+
+  Future<GenerateAgendaResponse> generateAgenda(String eventId, String token) async {
+    final response = await _apiClient.get(
+      '/api/user/event/generate-agenda/$eventId',
+      headers: {'Authorization': 'Bearer $token'},
+      receiveTimeout: const Duration(minutes: 4),
+    );
+    return GenerateAgendaResponse.fromJson(response.data);
+  }
+
+  Future<SaveAgendaResponse> saveAgenda(String eventId, String agenda, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-agenda',
+      data: {
+        'eventId': eventId,
+        'agenda': agenda,
+      },
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return SaveAgendaResponse.fromJson(response.data);
+  }
+
+  Future<MemberListResponse> getMemberList(String eventId, String token, {int page = 1, int limit = 10}) async {
+    final response = await _apiClient.post(
+      '/api/user/event/member-list/$eventId',
+      data: {
+        'page': page,
+        'limit': limit,
+      },
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return MemberListResponse.fromJson(response.data);
+  }
+
+  Future<DashboardCountsResponse> getDashboardCounts(String token) async {
+    final response = await _apiClient.get(
+      '/api/user/event/dashboard-counts',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return DashboardCountsResponse.fromJson(response.data);
+  }
+
+  Future<DeleteEventResponse> deleteEvent(String eventId, String token) async {
+    final response = await _apiClient.delete(
+      '/api/user/event/delete/$eventId',
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return DeleteEventResponse.fromJson(response.data);
+  }
+}
