@@ -49,7 +49,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  EventOwnership _selectedOwnership = EventOwnership.other;
+  EventOwnership _selectedOwnership = EventOwnership.other; // Default to 'other' to match toggle
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   EventListBloc? _eventListBloc;
@@ -103,18 +103,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       providers: [
         BlocProvider(
           create: (context) {
-            final bloc = EventListBloc(EventRepository(ApiClient()))
-              ..add(FetchEventList(
-                request: EventListRequest(
-                  page: 1,
-                  limit: 10,
-                  ownBy: _selectedOwnership,
-                  status: null, // Pass null to send empty string ""
-                ),
-                token: widget.token,
-              ));
+            final bloc = EventListBloc(EventRepository(ApiClient()));
             // Store bloc reference for scroll listener
             _eventListBloc = bloc;
+            // Dispatch initial event after bloc is created
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _eventListBloc != null) {
+                _eventListBloc!.add(FetchEventList(
+                  request: EventListRequest(
+                    page: 1,
+                    limit: 10,
+                    ownBy: _selectedOwnership,
+                    status: null, // Pass null to send empty string ""
+                  ),
+                  token: widget.token,
+                ));
+              }
+            });
             return bloc;
           },
         ),
@@ -533,20 +538,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (!isSelected && _eventListBloc != null) {
+          if (!isSelected) {
             setState(() {
               _selectedOwnership = ownership;
               _isLoadingMore = false; // Reset loading state when changing filter
             });
-            _eventListBloc!.add(FetchEventList(
-              request: EventListRequest(
-                page: 1,
-                limit: 10,
-                ownBy: ownership,
-                status: null, // Pass null to send empty string ""
-              ),
-              token: widget.token,
-            ));
+            // Use post frame callback to ensure state is updated before dispatching
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _eventListBloc != null) {
+                _eventListBloc!.add(FetchEventList(
+                  request: EventListRequest(
+                    page: 1,
+                    limit: 10,
+                    ownBy: ownership,
+                    status: null, // Pass null to send empty string ""
+                  ),
+                  token: widget.token,
+                ));
+              }
+            });
           }
         },
         borderRadius: BorderRadius.circular(16),

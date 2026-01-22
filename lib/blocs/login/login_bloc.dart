@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../repositories/auth_repository.dart';
 import '../../models/auth_models.dart';
@@ -19,7 +20,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     emit(LoginLoading());
     try {
-      final String? deviceToken = await NotificationService().getToken();
+      String? deviceToken;
+      try {
+        deviceToken = await NotificationService().getToken();
+      } catch (e) {
+        // If token retrieval fails, continue with empty token
+        if (kDebugMode) {
+          print('Login: Failed to get device token: $e');
+        }
+        deviceToken = null;
+      }
+      
       String deviceType = 'Web';
       if (!kIsWeb) {
         deviceType = defaultTargetPlatform == TargetPlatform.android ? 'Android' : 'iOS';
@@ -37,6 +48,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         emit(LoginFailure(response.message));
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('Login Error: $e');
+      }
       emit(LoginFailure(e.toString()));
     }
   }

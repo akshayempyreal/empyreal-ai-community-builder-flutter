@@ -574,8 +574,28 @@ class _AppNavigatorState extends State<AppNavigator> {
           onBack: () => setState(() => _currentPage = 'dashboard'),
           onLogout: _handleLogout,
           onNavigateToProfile: () => setState(() => _currentPage = 'profile'),
-          onNavigateToPrivacy: () => setState(() => _currentPage = 'privacy'),
-          onNavigateToTerms: () => setState(() => _currentPage = 'terms'),
+          onNavigateToPrivacy: () {
+            if (kIsWeb) {
+              // On web, directly open in new tab
+              launchUrl(
+                Uri.parse('${ApiConstants.baseUrl}/privacy-policy'),
+                mode: LaunchMode.externalApplication,
+              );
+            } else {
+              setState(() => _currentPage = 'privacy');
+            }
+          },
+          onNavigateToTerms: () {
+            if (kIsWeb) {
+              // On web, directly open in new tab
+              launchUrl(
+                Uri.parse('${ApiConstants.baseUrl}/terms-and-conditions'),
+                mode: LaunchMode.externalApplication,
+              );
+            } else {
+              setState(() => _currentPage = 'terms');
+            }
+          },
         );
 
       case 'privacy':

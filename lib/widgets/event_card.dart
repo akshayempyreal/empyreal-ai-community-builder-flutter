@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
 import '../core/theme/app_theme.dart';
+import '../core/animation/app_animations.dart';
 import 'status_badge.dart';
 import '../project_helpers.dart';
 
@@ -19,23 +20,63 @@ class EventCard extends StatefulWidget {
   State<EventCard> createState() => _EventCardState();
 }
 
-class _EventCardState extends State<EventCard> {
+class _EventCardState extends State<EventCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppAnimations.fast,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: 16.roundBorder.copyWith(
-        side: BorderSide(
-          color: isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200,
-        ),
-      ),
-      child: InkWell(
-        onTap: widget.onTap,
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() => _isHovered = true);
+        _controller.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovered = false);
+        _controller.reverse();
+      },
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(_scaleAnimation.value),
+        child: Card(
+          elevation: _isHovered ? 4 : 0,
+          shadowColor: colorScheme.primary.withOpacity(0.15),
+          clipBehavior: Clip.antiAlias,
+          shape: 16.roundBorder.copyWith(
+            side: BorderSide(
+              color: _isHovered 
+                  ? colorScheme.primary.withOpacity(0.3)
+                  : (isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200),
+              width: _isHovered ? 1.5 : 1.0,
+            ),
+          ),
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(16),
         child: LayoutBuilder(
           builder: (context, constraints) {
             // Adjust image height based on available space
@@ -171,6 +212,8 @@ class _EventCardState extends State<EventCard> {
               ),
             );
           },
+        ),
+          ),
         ),
       ),
     );

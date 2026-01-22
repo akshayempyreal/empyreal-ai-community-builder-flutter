@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors - Premium Indigo & Deep Violet
-  static const Color primary = Color(0xFF6366F1); // Indigo 500
-  static const Color primaryDark = Color(0xFF4F46E5); // Indigo 600
-  static const Color secondary = Color(0xFF8B5CF6); // Violet 500
-  static const Color accent = Color(0xFFF472B6); // Pink 400
+  // Brand Colors - Professional Modern Theme (Deep Blue with Teal Accent)
+  static const Color primary = Color(0xFF0F4C75); // Deep Professional Blue
+  static const Color primaryDark = Color(0xFF0A3A5C); // Darker Blue
+  static const Color primaryLight = Color(0xFF1A6BA3); // Lighter Blue
+  static const Color secondary = Color(0xFF14B8A6); // Modern Teal
+  static const Color secondaryDark = Color(0xFF0D9488); // Darker Teal
+  static const Color accent = Color(0xFF06B6D4); // Cyan Accent
+  static const Color accentLight = Color(0xFF22D3EE); // Light Cyan
 
   // Neutral - Slate Palette (Premium feel)
   static const Color slate50 = Color(0xFFF8FAFC);
@@ -35,15 +38,15 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF1E293B);
   static const Color borderDark = Color(0xFF334155);
 
-  // Status Badge Colors (Adaptive)
+  // Status Badge Colors (Professional & Modern)
   static const Color statusDraft = Color(0xFFF1F5F9);
   static const Color statusDraftText = Color(0xFF475569);
-  static const Color statusPublished = Color(0xFFE0E7FF);
-  static const Color statusPublishedText = Color(0xFF4338CA);
-  static const Color statusOngoing = Color(0xFFD1FAE5);
-  static const Color statusOngoingText = Color(0xFF059669);
-  static const Color statusCompleted = Color(0xFFEDE9FE);
-  static const Color statusCompletedText = Color(0xFF7C3AED);
+  static const Color statusPublished = Color(0xFFE0F2FE); // Cyan 50
+  static const Color statusPublishedText = Color(0xFF0F4C75); // Primary Blue
+  static const Color statusOngoing = Color(0xFFCCFBF1); // Teal 100
+  static const Color statusOngoingText = Color(0xFF0D9488); // Teal 700
+  static const Color statusCompleted = Color(0xFFD1FAE5); // Emerald 100
+  static const Color statusCompletedText = Color(0xFF059669); // Emerald 700
 
   // Aliases for compatibility
   static const Color primaryIndigo = primary;

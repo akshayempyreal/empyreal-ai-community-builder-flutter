@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../repositories/auth_repository.dart';
 import '../../models/auth_models.dart';
@@ -37,8 +38,19 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
     Emitter<OtpState> emit,
   ) async {
     // Re-use login API for resending OTP
+    emit(OtpLoading()); // Emit loading state
     try {
-      final String? deviceToken = await NotificationService().getToken();
+      String? deviceToken;
+      try {
+        deviceToken = await NotificationService().getToken();
+      } catch (e) {
+        // If token retrieval fails, continue with empty token
+        if (kDebugMode) {
+          print('OTP: Failed to get device token: $e');
+        }
+        deviceToken = null;
+      }
+      
       String deviceType = 'Web';
       if (!kIsWeb) {
         deviceType = defaultTargetPlatform == TargetPlatform.android ? 'Android' : 'iOS';
@@ -56,6 +68,9 @@ class OtpBloc extends Bloc<OtpEvent, OtpState> {
         emit(OtpFailure(response.message));
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('OTP Resend Error: $e');
+      }
       emit(OtpFailure(e.toString()));
     }
   }
