@@ -1,5 +1,6 @@
 import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:empyreal_ai_community_builder_flutter/models/event_api_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -46,27 +47,93 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   EventOwnership _selectedOwnership = EventOwnership.other;
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  EventListBloc? _eventListBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 200) {
+      // Load more when user is 200px from bottom
+      _loadMoreEvents();
+    }
+  }
+
+  void _loadMoreEvents() {
+    if (!mounted || _eventListBloc == null) return;
+    
+    final state = _eventListBloc!.state;
+    
+    if (state is EventListSuccess && state.hasMore && !_isLoadingMore) {
+      setState(() => _isLoadingMore = true);
+      
+      _eventListBloc!.add(FetchMoreEvents(
+        request: EventListRequest(
+          page: state.currentPage + 1,
+          limit: 10,
+          ownBy: _selectedOwnership,
+          status: null, // Pass null to send empty string ""
+        ),
+        token: widget.token,
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => EventListBloc(EventRepository(ApiClient()))
-        ..add(FetchEventList(
-          request: EventListRequest(
-            page: 1, 
-            limit: 10, 
-            ownBy: _selectedOwnership, 
-            status: EventStatus.upcoming,
-          ),
-          token: widget.token,
-        )),
-      child: BlocBuilder<EventListBloc, EventListState>(
+      create: (context) {
+        final bloc = EventListBloc(EventRepository(ApiClient()))
+          ..add(FetchEventList(
+            request: EventListRequest(
+              page: 1, 
+              limit: 10, 
+              ownBy: _selectedOwnership, 
+              status: null, // Pass null to send empty string ""
+            ),
+            token: widget.token,
+          ));
+        // Store bloc reference for scroll listener
+        _eventListBloc = bloc;
+        return bloc;
+      },
+      child: BlocConsumer<EventListBloc, EventListState>(
+        listener: (context, state) {
+          // Reset loading flag when new events are loaded
+          if (state is EventListSuccess && _isLoadingMore) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _isLoadingMore = false);
+            });
+          }
+        },
         builder: (context, state) {
           List<Event> events = [];
           bool isLoading = state is EventListLoading;
 
           if (state is EventListSuccess) {
-            events = state.response.data?.events.map((e) => Event.fromEventData(e)).toList() ?? [];
+            // Use accumulated events from all pages
+            events = state.allEvents.map((e) => Event.fromEventData(e)).toList();
+            // Reset loading flag when state updates
+            if (_isLoadingMore) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _isLoadingMore = false);
+              });
+            }
           }
 
           final stats = _calculateStats(events);
@@ -177,6 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             body: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +294,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   else if (events.isEmpty)
                     _buildEmptyState()
                   else
-                    _buildEventsList(events),
+                    _buildEventsList(events, state),
                 ],
               ),
             ),
@@ -440,13 +508,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (!isSelected) {
           setState(() {
             _selectedOwnership = ownership;
+            _isLoadingMore = false; // Reset loading state when changing filter
           });
-          context.read<EventListBloc>().add(FetchEventList(
+          final bloc = context.read<EventListBloc>();
+          _eventListBloc = bloc; // Update stored reference
+          bloc.add(FetchEventList(
                 request: EventListRequest(
                   page: 1,
                   limit: 10,
                   ownBy: ownership,
-                  status: EventStatus.upcoming,
+                  status: null, // Pass null to send empty string ""
                 ),
                 token: widget.token,
               ));
@@ -512,13 +583,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildEventsList(List<Event> events) {
+  Widget _buildEventsList(List<Event> events, EventListState state) {
+    final hasMore = state is EventListSuccess && state.hasMore;
+    final isLoadingMore = _isLoadingMore || (state is EventListLoading && events.isNotEmpty);
+    
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: events.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemCount: events.length + (hasMore || isLoadingMore ? 1 : 0),
+      separatorBuilder: (context, index) {
+        if (index >= events.length) return const SizedBox.shrink();
+        return const SizedBox(height: 16);
+      },
       itemBuilder: (context, index) {
+        // Show loading indicator at the end if there are more pages
+        if (index == events.length) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : const SizedBox.shrink(),
+            ),
+          );
+        }
+        
         return EventCard(
           event: events[index],
           onTap: () => widget.onSelectEvent(events[index]),

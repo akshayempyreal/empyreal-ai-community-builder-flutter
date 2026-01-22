@@ -8,3 +8,10 @@ class FetchEventList extends EventListEvent {
 
   FetchEventList({required this.request, required this.token});
 }
+
+class FetchMoreEvents extends EventListEvent {
+  final EventListRequest request;
+  final String token;
+
+  FetchMoreEvents({required this.request, required this.token});
+}

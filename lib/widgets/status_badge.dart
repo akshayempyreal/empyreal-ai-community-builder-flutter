@@ -28,6 +28,16 @@ class StatusBadge extends StatelessWidget {
         textColor = AppColors.statusOngoingText;
         label = 'Ongoing';
         break;
+      case 'upcoming':
+        backgroundColor = Colors.blue.withOpacity(0.1);
+        textColor = Colors.blue.shade700;
+        label = 'Upcoming';
+        break;
+      case 'past':
+        backgroundColor = Colors.grey.withOpacity(0.1);
+        textColor = Colors.grey.shade700;
+        label = 'Past';
+        break;
       case 'completed':
         backgroundColor = AppColors.statusCompleted;
         textColor = AppColors.statusCompletedText;
