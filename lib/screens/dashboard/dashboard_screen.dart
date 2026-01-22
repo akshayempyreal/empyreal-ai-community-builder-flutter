@@ -13,6 +13,8 @@ import '../../widgets/stat_card.dart';
 import '../../widgets/event_card.dart';
 import '../../project_helpers.dart';
 
+import '../../core/enums/event_enums.dart';
+
 class DashboardScreen extends StatefulWidget {
   final User user;
   final String token;
@@ -47,7 +49,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BlocProvider(
       create: (context) => EventListBloc(EventRepository(ApiClient()))
         ..add(FetchEventList(
-          request: EventListRequest(page: 1, limit: 10, ownBy: 'all', status: 'published'),
+          request: EventListRequest(
+            page: 1, 
+            limit: 10, 
+            ownBy: EventOwnership.all, 
+            status: EventStatus.upcoming,
+          ),
           token: widget.token,
         )),
       child: BlocBuilder<EventListBloc, EventListState>(
@@ -61,33 +68,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           final stats = _calculateStats(events);
 
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+
           return Scaffold(
-            backgroundColor: AppColors.gray50,
+            backgroundColor: theme.scaffoldBackgroundColor,
             appBar: AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: theme.appBarTheme.backgroundColor,
               elevation: 0,
               title: Row(
                 children: [
+                  // App Logo Placeholder
                   Container(
-                    width: 40,
-                    height: 40,
+                    height: 36,
+                    width: 36,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryIndigo.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
                     ),
-                    child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                    child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text('AI Event Builder'),
+                  Text(
+                    'AI Event Builder',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               actions: [
                 IconButton(
                   icon: Stack(
                     children: [
-                      const Icon(Icons.notifications_outlined),
+                      Icon(Icons.notifications_outlined, color: theme.iconTheme.color),
                       if (widget.unreadCount > 0)
                         Positioned(
                           right: 0,
@@ -156,18 +181,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   // Welcome section
                   Text(
                     'Welcome back, ${widget.user.name.split(' ')[0]}! 👋',
-                    style: const TextStyle(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.gray900,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     "Here's what's happening with your events",
-                    style: TextStyle(fontSize: 16, color: AppColors.gray600),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.hintColor,
+                    ),
                   ),
                   const SizedBox(height: 32),
 
@@ -183,12 +209,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Your Events',
-                        style: TextStyle(
-                          fontSize: 20,
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.gray900,
                         ),
                       ),
                       if (isLoading)
@@ -383,20 +407,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(48),
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.calendar_today, size: 48, color: AppColors.slate400),
+              Icon(Icons.calendar_today, size: 48, color: theme.hintColor.withOpacity(0.5)),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'No events yet',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.slate900),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              const Text('Create your first event to get started', style: const TextStyle(color: AppColors.slate600)),
+              Text(
+                'Create your first event to get started', 
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: widget.onCreateEvent,
@@ -411,26 +439,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildEventsList(List<Event> events) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 1200 ? 3 : 2;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 0.85,
-          ),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            return EventCard(
-              event: events[index],
-              onTap: () => widget.onSelectEvent(events[index]),
-            );
-          },
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: events.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        return EventCard(
+          event: events[index],
+          onTap: () => widget.onSelectEvent(events[index]),
         );
       },
     );

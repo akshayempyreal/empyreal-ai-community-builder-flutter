@@ -1,3 +1,5 @@
+import '../core/enums/event_enums.dart';
+
 class CreateEventRequest {
   final String name;
   final String startDate;
@@ -133,21 +135,21 @@ class EventData {
 class EventListRequest {
   final int page;
   final int limit;
-  final String ownBy;
-  final String status;
+  final EventOwnership ownBy;
+  final EventStatus status;
 
   EventListRequest({
     this.page = 1,
     this.limit = 10,
-    this.ownBy = 'all',
-    this.status = 'upcoming',
+    this.ownBy = EventOwnership.all,
+    this.status = EventStatus.upcoming,
   });
 
   Map<String, dynamic> toJson() => {
     'page': page,
     'limit': limit,
-    'ownBy': ownBy,
-    'status': status,
+    'ownBy': ownBy.toJson(),
+    'status': status.toJson(),
   };
 }
 

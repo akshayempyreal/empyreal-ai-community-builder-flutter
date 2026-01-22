@@ -20,164 +20,197 @@ class EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<EventCard> {
-  bool _isHovered = false;
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Card(
       elevation: 0,
+      clipBehavior: Clip.antiAlias,
       shape: 16.roundBorder.copyWith(
-        side: const BorderSide(color: AppColors.gray200),
+        side: BorderSide(
+          color: isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200,
+        ),
       ),
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: 16.radius,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Event Image or Placeholder
-            if (widget.event.image != null && widget.event.image!.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.network(
-                  widget.event.image!.fixImageUrl,
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 160,
-                    width: double.infinity,
-                    color: AppColors.indigo100,
-                    child: const Icon(Icons.broken_image_outlined, color: AppColors.primaryIndigo, size: 48),
-                  ),
-                ),
-              )
-            else
-              Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.indigo100,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: const Icon(Icons.image_outlined, color: AppColors.primaryIndigo, size: 48),
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Adjust image height based on available space
+            final imageHeight = constraints.maxHeight > 0 
+                ? (constraints.maxHeight * 0.4).clamp(100.0, 160.0) 
+                : 140.0;
 
-            Column(
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    StatusBadge(status: widget.event.status),
-                    Text(
-                      widget.event.type.upper,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.gray400,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-                12.height(context),
-
-                Text(
-                  widget.event.name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.gray900,
-                    letterSpacing: -0.5,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                4.height(context),
-
-                Text(
-                  widget.event.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.gray600,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                20.height(context),
-
-                // Details Grid - Clean logistics hub
-                Row(
-                  children: [
-                    _buildCompactInfo(Icons.calendar_today_rounded, _formatDate(widget.event.date)),
-                    const Spacer(),
-                    _buildCompactInfo(Icons.timer_rounded, '${widget.event.duration}h/day'),
-                    const Spacer(),
-                    _buildCompactInfo(Icons.group_rounded, '${widget.event.attendeeCount ?? 0} members'),
-                  ],
+                // Event Image or Placeholder
+                SizedBox(
+                  height: imageHeight,
+                  width: double.infinity,
+                  child: _buildImage(imageHeight),
                 ),
 
-                20.height(context),
-
-                // Footer Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.gray50,
-                        borderRadius: 8.radius,
-                        border: Border.all(color: AppColors.gray200),
-                      ),
-                      child: Row(
+                // Content Area
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header: Status and Type
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            widget.event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
-                            size: 14,
-                            color: AppColors.primaryIndigo,
-                          ),
-                          8.width,
-                          Text(
-                            widget.event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.gray700,
-                              fontWeight: FontWeight.w700,
+                          StatusBadge(status: widget.event.status),
+                          Flexible(
+                            child: Text(
+                              widget.event.type.upper,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: theme.hintColor,
+                                letterSpacing: 1.2,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const Icon(Icons.arrow_forward_rounded, size: 18, color: AppColors.gray400),
-                  ],
+                      const SizedBox(height: 12),
+
+                      // Event Name
+                      Text(
+                        widget.event.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Description
+                      Text(
+                        widget.event.description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          height: 1.4,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      
+                      const SizedBox(height: 16),
+
+                      // Details Wrap - Replaces Row to prevent horizontal overflow
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: [
+                          _buildCompactInfo(context, Icons.calendar_today_rounded, _formatDate(widget.event.date)),
+                          _buildCompactInfo(context, Icons.timer_rounded, '${widget.event.duration}h/day'),
+                          _buildCompactInfo(context, Icons.group_rounded, '${widget.event.attendeeCount ?? 0} members'),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Footer Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? colorScheme.surfaceVariant : AppColors.gray50,
+                                borderRadius: 8.radius,
+                                border: Border.all(
+                                  color: isDark ? colorScheme.outline.withOpacity(0.2) : AppColors.gray200,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.event.planningMode == 'automated' ? Icons.auto_awesome : Icons.edit_note,
+                                    size: 14,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      widget.event.planningMode == 'automated' ? 'AI Planned' : 'Manual',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_rounded, size: 18, color: theme.hintColor),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ).paddingAll(context, 20),
-          ],
+            );
+          },
         ),
       ),
-
     );
   }
 
-  Widget _buildCompactInfo(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: AppColors.primaryIndigo),
-        6.width,
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.gray600,
+  Widget _buildImage(double height) {
+    if (widget.event.image != null && widget.event.image!.isNotEmpty) {
+      return Image.network(
+        widget.event.image!.fixImageUrl,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(height, Icons.broken_image_outlined),
+      );
+    }
+    return _buildPlaceholder(height, Icons.image_outlined);
+  }
+
+  Widget _buildPlaceholder(double height, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      height: height,
+      width: double.infinity,
+      color: colorScheme.primaryContainer.withOpacity(0.3),
+      child: Icon(icon, color: colorScheme.primary, size: 48),
+    );
+  }
+
+  Widget _buildCompactInfo(BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -185,7 +218,7 @@ class _EventCardState extends State<EventCard> {
     try {
       final date = DateTime.parse(dateStr);
       final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+      return '${months[date.month - 1]} ${date.day}';
     } catch (e) {
       return dateStr;
     }

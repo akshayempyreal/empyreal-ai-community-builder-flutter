@@ -51,6 +51,10 @@ class EventRepository {
     return FileUploadResponse.fromJson(response.data);
   }
 
+  /// Fetches a list of events based on the provided [request] parameters.
+  /// 
+  /// Throws an [Exception] if the request fails (handled by [ApiClient]).
+  /// Returns an [EventListResponse] containing the parsed events list and pagination data.
   Future<EventListResponse> getEvents(EventListRequest request, String token) async {
     final response = await _apiClient.post(
       '/api/user/event/list',
