@@ -63,4 +63,13 @@ class EventRepository {
     );
     return EventListResponse.fromJson(response.data);
   }
+
+  Future<SaveSessionsResponse> saveSessions(SaveSessionsRequest request, String token) async {
+    final response = await _apiClient.post(
+      '/api/user/event/save-sessions',
+      data: request.toJson(),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return SaveSessionsResponse.fromJson(response.data);
+  }
 }

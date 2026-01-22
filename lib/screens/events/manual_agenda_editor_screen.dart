@@ -571,28 +571,88 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     });
   }
 
-  void _handleSaveAndGoToDashboard() {
-    final List<AgendaItem> items = [];
-    int counter = 1;
-    
-    for (var day in _localSessions) {
-      for (var session in day.sessions) {
-        final start = DateTime.parse(session.startDateTime).toLocal();
-        final end = DateTime.parse(session.endDateTime).toLocal();
+  Future<void> _handleSaveAndGoToDashboard() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Create the save sessions request
+      final request = SaveSessionsRequest(
+        eventId: widget.event.id,
+        sessions: _localSessions,
+      );
+
+      // Call the API
+      final repository = EventRepository(ApiClient());
+      final response = await repository.saveSessions(request, widget.token);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (response.status) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Convert sessions to AgendaItems for backward compatibility
+        final List<AgendaItem> items = [];
+        int counter = 1;
         
-        items.add(AgendaItem(
-          id: 'gen_$counter',
-          title: session.sessionTitle,
-          startTime: DateFormat('HH:mm').format(start),
-          endTime: DateFormat('HH:mm').format(end),
-          type: session.sessionType,
-          description: session.sessionDescription,
-        ));
-        counter++;
+        for (var day in _localSessions) {
+          for (var session in day.sessions) {
+            final start = DateTime.parse(session.startDateTime).toLocal();
+            final end = DateTime.parse(session.endDateTime).toLocal();
+            
+            items.add(AgendaItem(
+              id: 'gen_$counter',
+              title: session.sessionTitle,
+              startTime: DateFormat('HH:mm').format(start),
+              endTime: DateFormat('HH:mm').format(end),
+              type: session.sessionType,
+              description: session.sessionDescription,
+            ));
+            counter++;
+          }
+        }
+        
+        widget.onSaveAgenda(items);
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save sessions: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
-    
-    widget.onSaveAgenda(items);
   }
 
   Widget _buildDetailRow(String label, String value) {

@@ -1,6 +1,6 @@
 import 'package:empyreal_ai_community_builder_flutter/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import '../../project_helpers.dart';
 import 'dart:math' as math;
 import '../../models/user.dart';
@@ -8,6 +8,9 @@ import '../../models/event.dart';
 import '../../models/agenda_item.dart';
 import '../../models/attendee.dart';
 import '../../widgets/status_badge.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class EventDetailsScreen extends StatelessWidget {
   final Event event;
@@ -202,11 +205,7 @@ class EventDetailsScreen extends StatelessWidget {
                               'Location',
                               event.location,
                               isClickable: true,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Opening Location on Map...')),
-                                );
-                              },
+                              onTap: () => _openLocationInMaps(context),
                             ),
                             const Divider(height: 1, color: AppColors.gray100).paddingHorizontal(context, 16),
                             _buildLogisticsItem(
@@ -508,6 +507,213 @@ class EventDetailsScreen extends StatelessWidget {
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (e) {
       return dateStr;
+    }
+  }
+
+  Future<void> _openLocationInMaps(BuildContext context) async {
+    // Check if event has coordinates
+    if (event.latitude == null || event.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location coordinates not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      Position? userPosition;
+      
+      // Try to get user's current location
+      if (kIsWeb) {
+        // Web: Use browser geolocation API
+        try {
+          userPosition = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        } catch (e) {
+          debugPrint('Error getting user location on web: $e');
+          // Continue without user location - Google Maps will use browser location
+        }
+      } else {
+        // Mobile: Use permission handler and geolocator
+        final permissionStatus = await Permission.location.request();
+        
+        if (permissionStatus.isGranted) {
+          try {
+            // Check if location services are enabled
+            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (serviceEnabled) {
+              userPosition = await Geolocator.getCurrentPosition(
+                desiredAccuracy: LocationAccuracy.high,
+              );
+            }
+          } catch (e) {
+            debugPrint('Error getting user location: $e');
+            // Continue without user location - Google Maps will use device location
+          }
+        }
+      }
+
+      bool launched = false;
+      
+      // Web: Directly use web URL (no native apps available)
+      if (kIsWeb) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            // Include user location for directions
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          } else {
+            // Just destination - Google Maps will prompt for user location or use browser location
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          }
+          
+          final uri = Uri.parse(mapsUrl);
+          // On web, use platformDefault which opens in new tab (more reliable than externalApplication)
+          // externalApplication might be blocked by browser pop-up blockers
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+          // Show error message on web if launch fails
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Could not open Google Maps. Please check your browser settings.'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: () => _openLocationInMaps(context),
+                ),
+              ),
+            );
+          }
+        }
+      }
+      
+      // Try different URL schemes based on platform (skip if web, already handled)
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        // Android: Try multiple schemes with error handling
+        List<Uri> urisToTry = [];
+        
+        if (userPosition != null) {
+          // Try google.navigation: for turn-by-turn navigation
+          urisToTry.add(Uri.parse(
+            'google.navigation:q=${event.latitude},${event.longitude}',
+          ));
+          
+          // Try comgooglemaps:// with directions
+          urisToTry.add(Uri.parse(
+            'comgooglemaps://?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&directionsmode=driving',
+          ));
+        }
+        
+        // Try geo: scheme (works with any map app)
+        urisToTry.add(Uri.parse(
+          'geo:${event.latitude},${event.longitude}?q=${event.latitude},${event.longitude}(${Uri.encodeComponent(event.name)})',
+        ));
+        
+        // Try comgooglemaps:// without directions
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+        ));
+        
+        // Try each URI
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        // iOS: Try Apple Maps first, then Google Maps
+        List<Uri> urisToTry = [];
+        
+        if (userPosition != null) {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?saddr=${userPosition.latitude},${userPosition.longitude}&daddr=${event.latitude},${event.longitude}&dirflg=d',
+          ));
+        } else {
+          urisToTry.add(Uri.parse(
+            'http://maps.apple.com/?q=${event.latitude},${event.longitude}',
+          ));
+        }
+        
+        // Fallback to Google Maps on iOS
+        urisToTry.add(Uri.parse(
+          'comgooglemaps://?q=${event.latitude},${event.longitude}',
+        ));
+        
+        for (final uri in urisToTry) {
+          try {
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+              launched = true;
+              break;
+            }
+          } catch (e) {
+            debugPrint('Failed to launch $uri: $e');
+            continue;
+          }
+        }
+      }
+      
+      // Fallback to web URL for all platforms (always works)
+      if (!launched) {
+        try {
+          String mapsUrl;
+          if (userPosition != null) {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&origin=${userPosition.latitude},${userPosition.longitude}'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          } else {
+            mapsUrl = 'https://www.google.com/maps/dir/?api=1'
+                '&destination=${event.latitude},${event.longitude}'
+                '&travelmode=driving';
+          }
+          
+          final uri = Uri.parse(mapsUrl);
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          launched = true;
+        } catch (e) {
+          debugPrint('Failed to launch web maps: $e');
+        }
+      }
+      
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open maps application. Please install Google Maps.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening maps: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening maps: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
