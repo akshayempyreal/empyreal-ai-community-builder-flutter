@@ -107,60 +107,102 @@ class _ManualAgendaEditorScreenState extends State<ManualAgendaEditorScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 32),
-                      SizedBox(width: 12),
-                      Text(
-                        'Event Details',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 32),
-                  _buildDetailRow('Event Name', widget.event.name),
-                  _buildDetailRow('Description', widget.event.description),
-                  _buildDetailRow('Location', widget.event.location),
-                  _buildDetailRow('Event Type', widget.event.type),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailRow('Start Date', _formatDate(widget.event.date))),
-                      Expanded(child: _buildDetailRow('End Date', widget.event.endDate != null ? _formatDate(widget.event.endDate!) : 'N/A')),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailRow('Hours per Day', '${widget.event.duration} hours')),
-                      Expanded(child: _buildDetailRow('Expected Audience', '${widget.event.audienceSize ?? 0}')),
-                    ],
-                  ),
-                ],
+          const SizedBox(height: 40),
+          // Agenda Icon
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryIndigo, AppColors.primaryPurple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryIndigo.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.event_note,
+              color: Colors.white,
+              size: 60,
             ),
           ),
           const SizedBox(height: 32),
-          Center(
-            child: ElevatedButton(
-              onPressed: () {
-                context.read<AgendaBloc>().add(
-                      GenerateSessionsRequested(eventId: widget.event.id, token: widget.token),
-                    );
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          // Title
+          const Text(
+            'Create Your Event Agenda',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.gray900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          // Description
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Build a comprehensive agenda for "${widget.event.name}" by creating sessions, workshops, and activities.',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.gray600,
+                height: 1.5,
               ),
-              child: const Text('Create Agenda'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 48),
+          // Create Agenda Button
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<AgendaBloc>().add(
+                    GenerateSessionsRequested(eventId: widget.event.id, token: widget.token),
+                  );
+            },
+            icon: const Icon(Icons.add_circle_outline, size: 24),
+            label: const Text(
+              'Create Agenda',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryIndigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Info Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppColors.primaryIndigo, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'You can add sessions, set timings, and organize your event schedule.',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -727,11 +769,10 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
   
   final List<String> _messages = [
     'Creating Agenda...',
-    'Managing Timing...',
-    'Arranging Sessions...',
-    'Adding Breaks...',
-    'Optimizing Schedule...',
-    'Finalizing Details...',
+    'Organizing Sessions...',
+    'Setting Timings...',
+    'Structuring Schedule...',
+    'Finalizing Agenda...',
   ];
 
   @override
@@ -923,13 +964,12 @@ class _AgendaLoadingViewState extends State<AgendaLoadingView> with SingleTicker
 
   String _getSubtitle(int index) {
     switch (index) {
-      case 0: return 'Structuring the foundation of your event';
-      case 1: return 'Ensuring a perfect flow for every speaker';
-      case 2: return 'Balancing learning and interactive workshops';
-      case 3: return 'Strategically placing networking intervals';
-      case 4: return 'Maximizing engagement across all segments';
-      case 5: return 'Polishing the timeline for your community';
-      default: return 'Architecting your perfect community event';
+      case 0: return 'Building your event agenda structure';
+      case 1: return 'Organizing sessions and activities';
+      case 2: return 'Setting optimal timings for each session';
+      case 3: return 'Structuring the complete schedule';
+      case 4: return 'Finalizing your event agenda';
+      default: return 'Creating your event agenda';
     }
   }
 }
@@ -949,10 +989,10 @@ class _GeneratingAgendaDialogState extends State<_GeneratingAgendaDialog> with S
   
   final List<String> _messages = [
     'Generating Agenda...',
-    'Analyzing Sessions...',
-    'Creating Timeline...',
-    'Formatting Content...',
-    'Finalizing Details...',
+    'Processing Sessions...',
+    'Creating Schedule...',
+    'Formatting Agenda...',
+    'Finalizing Agenda...',
   ];
 
   @override
@@ -1141,12 +1181,12 @@ class _GeneratingAgendaDialogState extends State<_GeneratingAgendaDialog> with S
 
   String _getSubtitle(int index) {
     switch (index) {
-      case 0: return 'AI is creating your event agenda';
-      case 1: return 'Reviewing all your sessions';
-      case 2: return 'Building the perfect schedule';
-      case 3: return 'Preparing the final document';
-      case 4: return 'Almost ready...';
-      default: return 'Processing your request';
+      case 0: return 'AI is generating your event agenda';
+      case 1: return 'Processing all sessions';
+      case 2: return 'Creating the schedule';
+      case 3: return 'Formatting agenda content';
+      case 4: return 'Finalizing your agenda';
+      default: return 'Generating agenda';
     }
   }
 }
